@@ -751,10 +751,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: ListView(
             padding: EdgeInsets.only(top: 20),
             children: [
-              _drawerItem(Icons.home_outlined, 'Home', 0),
-              _drawerItem(Icons.medical_services_outlined, 'Services', 1),
-              _drawerItem(Icons.calendar_month_outlined, 'Calendar', 2),
-              _drawerItem(Icons.person_outline, 'Profile', 3),
               _drawerItem(
                 Icons.info_outline,
                 'About Clinic',
