@@ -1,7 +1,7 @@
 import 'package:dentalclinicsystem/screen/dashboard/dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
-import 'dashboard/dashboard_screen.dart';
+import 'dashboard/dashboard_screen.dart'; // Make sure the path matches your project structure!
 
 class LoginScreen extends StatefulWidget {
   final String? registeredFirstName,
@@ -26,6 +26,24 @@ class _LoginScreenState extends State<LoginScreen>
   bool isLoading = false, obscure = true;
   late AnimationController _animController;
 
+  // ── ☀️ DYNAMIC THEMED (Matches the rest of your app) ──
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+
+  // ── PREMIUM SLATE BLUE DARK MODE ──
+  Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
+  Color get card => isDark ? const Color(0xFF1E293B) : Colors.white;
+  Color get surface =>
+      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+  Color get text => isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
+  Color get textMuted =>
+      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  Color get border =>
+      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+
+  Color get primary => const Color(0xFF4A6CF7);
+  Color get accent => const Color(0xFF00D4FF);
+  Color get danger => const Color(0xFFEF4444);
+
   @override
   void initState() {
     super.initState();
@@ -34,17 +52,25 @@ class _LoginScreenState extends State<LoginScreen>
     }
     _animController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 800),
     )..forward();
+  }
+
+  @override
+  void dispose() {
+    user.dispose();
+    pass.dispose();
+    _animController.dispose();
+    super.dispose();
   }
 
   void _login() {
     if (user.text.isEmpty || pass.text.isEmpty) {
-      _showMsg('Please fill all fields', Colors.red);
+      _showMsg('Please fill all fields', danger);
       return;
     }
     setState(() => isLoading = true);
-    Future.delayed(Duration(seconds: 1), () {
+    Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() => isLoading = false);
       Navigator.pushReplacement(
@@ -61,244 +87,263 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
-  void _showMsg(String msg, Color color) =>
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.info, color: Colors.white),
-              SizedBox(width: 8),
-              Text(msg),
-            ],
+  void _showMsg(
+    String msg,
+    Color color,
+  ) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            msg,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-          backgroundColor: color,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
-      );
+        ],
+      ),
+      backgroundColor: color,
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [const Color(0xFF2C3E50), const Color(0xFF4A6FA5)],
-        ),
-      ),
-      child: SafeArea(
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: bg,
+      body: SafeArea(
         child: FadeTransition(
           opacity: _animController,
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo and Clinic Name
+                  // ── GLOWING LOGO ──
                   Container(
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white,
                       shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [primary, accent],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 20,
+                          color: primary.withOpacity(0.35),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
                     child: const Center(
-                      child: Text('🦷', style: TextStyle(fontSize: 50)),
+                      child: Text('🦷', style: TextStyle(fontSize: 44)),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  const SizedBox(height: 24),
+
+                  Text(
                     'SMILE ART',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
+                      color: text,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'DENTAL CLINIC',
                     style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      letterSpacing: 3,
+                      color: primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
 
-                  // White Card for Form
+                  // ── FLOATING LOGIN CARD ──
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(35),
+                      color: card,
+                      borderRadius: BorderRadius.circular(36),
+                      border: Border.all(color: border),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
+                          color: primary.withOpacity(0.04),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
                         ),
                       ],
                     ),
                     child: Column(
                       children: [
-                        // Username Field
-                        TextField(
-                          controller: user,
-                          decoration: InputDecoration(
-                            prefixIcon: Icon(
-                              Icons.person_outline,
-                              color: const Color(0xFF4A6FA5),
-                            ),
-                            hintText: 'Username',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF5F7FA),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 16,
-                            ),
-                          ),
+                        _inputField(
+                          user,
+                          Icons.alternate_email_rounded,
+                          'Username',
+                          false,
                         ),
                         const SizedBox(height: 16),
-                        // Password Field
-                        TextField(
-                          controller: pass,
-                          obscureText: obscure,
-                          decoration: InputDecoration(
-                            prefixIcon: Icon(
-                              Icons.lock_outline,
-                              color: const Color(0xFF4A6FA5),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                obscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: const Color(0xFF4A6FA5),
-                              ),
-                              onPressed: () =>
-                                  setState(() => obscure = !obscure),
-                            ),
-                            hintText: 'Password',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF5F7FA),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        // Forgot Password
+                        _inputField(pass, Icons.lock_rounded, 'Password', true),
+                        const SizedBox(height: 16),
+
                         Align(
                           alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => _showMsg(
+                          child: GestureDetector(
+                            onTap: () => _showMsg(
                               'Contact clinic to reset password',
-                              const Color(0xFF4A6FA5),
+                              primary,
                             ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF4A6FA5),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                            child: Text(
+                              'Forgot Password?',
+                              style: TextStyle(
+                                color: primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
-                            child: const Text('Forgot Password?'),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        // Login Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: ElevatedButton(
-                            onPressed: isLoading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4A6FA5),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                        const SizedBox(height: 32),
+
+                        // ── LOGIN BUTTON ──
+                        GestureDetector(
+                          onTap: isLoading ? null : _login,
+                          child: Container(
+                            width: double.infinity,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [primary, accent],
                               ),
-                              elevation: 3,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primary.withOpacity(0.35),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
                             ),
-                            child: isLoading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  )
-                                : const Text(
-                                    'LOGIN',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                            child: Center(
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'LOGIN',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1,
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  // Register Link
+
+                  const SizedBox(height: 32),
+
+                  // ── REGISTER LINK ──
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Don't have an account?",
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => RegisterScreen()),
+                      Text(
+                        "Don't have an account? ",
+                        style: TextStyle(
+                          color: textMuted,
+                          fontWeight: FontWeight.w500,
                         ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterScreen(),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Register',
                           style: TextStyle(
+                            color: primary,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
-  @override
-  void dispose() {
-    user.dispose();
-    pass.dispose();
-    _animController.dispose();
-    super.dispose();
+  // ── CUSTOM INPUT FIELD HELPER ──
+  Widget _inputField(
+    TextEditingController ctrl,
+    IconData icon,
+    String hint,
+    bool isPass,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: TextField(
+        controller: ctrl,
+        obscureText: isPass ? obscure : false,
+        style: TextStyle(
+          color: text,
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+        ),
+        decoration: InputDecoration(
+          icon: Icon(icon, color: primary, size: 22),
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: TextStyle(color: textMuted, fontWeight: FontWeight.normal),
+          suffixIcon: isPass
+              ? IconButton(
+                  icon: Icon(
+                    obscure
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                    color: textMuted,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => obscure = !obscure),
+                )
+              : null,
+        ),
+      ),
+    );
   }
 }

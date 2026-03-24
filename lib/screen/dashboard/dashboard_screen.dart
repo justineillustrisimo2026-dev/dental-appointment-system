@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../profile/profile_screen.dart';
 import 'services_screen.dart';
 import 'calendar_screen.dart';
@@ -17,900 +19,450 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
-    with TickerProviderStateMixin {
-  int _selectedIndex = 0;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  late AnimationController _animController;
+class _DashboardScreenState extends State<DashboardScreen> {
+  int _idx = 0;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> appointments = [];
 
-  String get _greeting {
-    var h = DateTime.now().hour;
-    return h < 12
-        ? 'Good Morning'
-        : h < 17
-        ? 'Good Afternoon'
-        : 'Good Evening';
-  }
+  // ☀️ Starts App in Light Mode default!
+  bool isDark = false;
+
+  // ── UPDATED THEME: SLEEK BLACK SHADES FOR DARK MODE ──
+  Color get bg => isDark
+      ? const Color(0xFF0F172A)
+      : const Color(0xFFF4F6F9); // Deep Slate Blue Background
+  Color get card =>
+      isDark ? const Color(0xFF1E293B) : Colors.white; // Elevated Blue Card
+  Color get surface => isDark
+      ? const Color(0xFF334155)
+      : const Color(0xFFE2E8F0); // Active Blue Surface
+  Color get text => isDark
+      ? const Color(0xFFF8FAFC)
+      : const Color(0xFF1E293B); // Icy White Text
+  Color get textMuted => isDark
+      ? const Color(0xFF94A3B8)
+      : const Color(0xFF64748B); // Cool Blue-Grey Text
+  Color get border => isDark
+      ? const Color(0xFF475569)
+      : const Color(0xFFE2E8F0); // Soft Blue Border
+
+  final primary = const Color(0xFF4A6CF7);
+  final accent = const Color(0xFF00D4FF);
+  LinearGradient get grad => LinearGradient(colors: [primary, accent]);
 
   List<Map<String, dynamic>> get _upcoming =>
       appointments.where((a) => a['status'] == 'upcoming').toList();
   List<Map<String, dynamic>> get _completed =>
       appointments.where((a) => a['status'] == 'completed').toList();
 
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 600),
-    )..forward();
+  void _addAppt(Map<String, dynamic> a) {
+    setState(() => appointments.add(a));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Appointment booked!',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: primary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
-  void addAppointment(Map<String, dynamic> a) => setState(() {
-    appointments.add(a);
-    _showSnack('Appointment booked!', Icons.check_circle);
-  });
+  @override
+  Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      ),
+    );
 
-  void _showSnack(String m, IconData i) =>
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
+    return Theme(
+      data: ThemeData(brightness: isDark ? Brightness.dark : Brightness.light),
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: bg,
+        extendBodyBehindAppBar: true,
+        appBar: _appBar(),
+        endDrawer: _drawer(),
+        body: IndexedStack(
+          index: _idx,
+          children: [
+            _dashHome(),
+            ServicesScreen(
+              appointments: appointments,
+              onBookAppointment: (a) {
+                _addAppt(a);
+                setState(() => _idx = 2);
+              },
+              patientName: widget.patientName,
+              firstName: widget.firstName,
+              lastName: widget.lastName,
+            ),
+            CalendarScreen(
+              appointments: appointments,
+              patientName: widget.patientName,
+              firstName: widget.firstName,
+              lastName: widget.lastName,
+            ),
+            ProfileScreen(
+              patientName: widget.patientName,
+              firstName: widget.firstName,
+              lastName: widget.lastName,
+              contactNo: widget.contactNo,
+            ),
+          ],
+        ),
+        bottomNavigationBar: _buildBottomNav(),
+      ),
+    );
+  }
+
+  // ── APP BAR ──────────────────────────────────────
+  PreferredSizeWidget _appBar() => PreferredSize(
+    preferredSize: const Size.fromHeight(72),
+    child: SafeArea(
+      child: Container(
+        color: bg.withOpacity(0.95),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 23,
+              backgroundColor: primary,
+              child: Text(
+                '${widget.firstName[0]}${widget.lastName[0]}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Hello,',
+                    style: TextStyle(color: textMuted, fontSize: 12),
+                  ),
+                  Text(
+                    '${widget.firstName} ${widget.lastName}',
+                    style: TextStyle(
+                      color: text,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _iconBtn(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              () => setState(() => isDark = !isDark),
+            ),
+            const SizedBox(width: 8),
+            _iconBtn(
+              Icons.qr_code_scanner,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      QRScannerScreen(userAppointments: appointments),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _iconBtn(
+              Icons.menu,
+              () => _scaffoldKey.currentState?.openEndDrawer(),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _iconBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Icon(icon, color: text, size: 20),
+    ),
+  );
+
+  // ── HOME DASHBOARD ───────────────────────────────
+  Widget _dashHome() => SingleChildScrollView(
+    padding: const EdgeInsets.only(top: 100, bottom: 30),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _hero(),
+        const SizedBox(height: 24),
+        _statsRow(),
+        const SizedBox(height: 30),
+        appointments.isEmpty
+            ? Container(
+                height: 250, // Strict height area to center the empty state
+                alignment: Alignment.center,
+                child: _emptyState(),
+              )
+            : Column(
+                children: [
+                  if (_upcoming.isNotEmpty)
+                    _section(
+                      'Upcoming',
+                      _upcoming,
+                      () => setState(() => _idx = 2),
+                    ),
+                  if (_completed.isNotEmpty)
+                    _section(
+                      'History',
+                      _completed,
+                      () => setState(() => _idx = 2),
+                    ),
+                ],
+              ),
+      ],
+    ),
+  );
+
+  Widget _hero() => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20),
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      gradient: grad,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [BoxShadow(color: primary.withOpacity(0.4), blurRadius: 20)],
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(i, color: Colors.white),
-              SizedBox(width: 8),
-              Text(m),
+              const Text(
+                'Smile Art Dental',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.firstName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => setState(() => _idx = 1),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: primary,
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Book Now',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
-          backgroundColor: Color(0xFF4A6FA5),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
         ),
-      );
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    key: _scaffoldKey,
-    backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-    appBar: AppBar(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      leading: SizedBox(),
-      title: Row(
-        children: [
-          _buildAvatar(),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _greeting,
-                  style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '${widget.firstName} ${widget.lastName}',
-                  style: TextStyle(
-                    color: Color(0xFF1E293B),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        _buildIconButton(
-          Icons.qr_code_scanner,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => QRScannerScreen(userAppointments: appointments),
-            ),
-          ),
-        ),
-        _buildIconButton(
-          Icons.menu,
-          () => _scaffoldKey.currentState?.openEndDrawer(),
-        ),
+        const Icon(Icons.maps_home_work_rounded, color: Colors.white, size: 54),
       ],
-    ),
-    endDrawer: _buildDrawer(),
-    body: FadeTransition(
-      opacity: _animController,
-      child: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _buildDashboardHome(),
-          ServicesScreen(
-            appointments: appointments,
-            onBookAppointment: (a) {
-              addAppointment(a);
-              setState(() => _selectedIndex = 2);
-            },
-            patientName: widget.patientName,
-            firstName: widget.firstName,
-            lastName: widget.lastName,
-          ),
-          CalendarScreen(
-            appointments: appointments,
-            patientName: widget.patientName,
-            firstName: widget.firstName,
-            lastName: widget.lastName,
-          ),
-          ProfileScreen(
-            patientName: widget.patientName,
-            firstName: widget.firstName,
-            lastName: widget.lastName,
-            contactNo: widget.contactNo,
-          ),
-        ],
-      ),
-    ),
-    bottomNavigationBar: _buildBottomNavBar(),
-  );
-
-  Widget _buildIconButton(IconData i, VoidCallback o) => Container(
-    margin: EdgeInsets.only(right: 8),
-    decoration: BoxDecoration(
-      color: const Color(0xFF4A6FA5),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-      ],
-    ),
-    child: IconButton(
-      icon: Icon(i, color: Colors.white, size: 22),
-      onPressed: o,
-      splashRadius: 20,
     ),
   );
 
-  Widget _buildAvatar() => Container(
-    width: 45,
-    height: 45,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(colors: [Color(0xFF4A6FA5), Color(0xFF6B8EC9)]),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Color(0xFF4A6FA5).withOpacity(0.3),
-          blurRadius: 12,
-          offset: Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Center(
-      child: Text(
-        '${widget.firstName[0]}${widget.lastName[0]}',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-    ),
-  );
-
-  Widget _buildDashboardHome() => SingleChildScrollView(
-    physics: BouncingScrollPhysics(),
-    child: Column(
+  Widget _statsRow() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: Row(
       children: [
-        _buildWelcomeCard(),
-        _buildStatsSection(),
-        _buildUpcomingSection(),
-        _buildHistoryPreview(),
-        SizedBox(height: 20),
+        _stat('${_upcoming.length}', 'Upcoming', Icons.upcoming),
+        const SizedBox(width: 12),
+        _stat('${_completed.length}', 'Done', Icons.check_circle),
+        const SizedBox(width: 12),
+        _stat('${appointments.length}', 'Total', Icons.bar_chart),
       ],
     ),
   );
 
-  Widget _buildWelcomeCard() => Container(
-    margin: EdgeInsets.all(20),
-    padding: EdgeInsets.all(24),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color(0xFF4A6FA5), Color(0xFF6B8EC9), Color(0xFF8AAEE0)],
+  Widget _stat(String val, String label, IconData icon) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
       ),
-      borderRadius: BorderRadius.circular(35),
-      boxShadow: [
-        BoxShadow(
-          color: Color(0xFF4A6FA5).withOpacity(0.3),
-          blurRadius: 20,
-          offset: Offset(0, 8),
-        ),
-      ],
+      child: Column(
+        children: [
+          Icon(icon, color: primary),
+          const SizedBox(height: 8),
+          Text(
+            val,
+            style: TextStyle(
+              color: text,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(label, style: TextStyle(color: textMuted, fontSize: 11)),
+        ],
+      ),
     ),
+  );
+
+  Widget _section(
+    String title,
+    List<Map<String, dynamic>> list,
+    VoidCallback onViewAll,
+  ) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome back!',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '${widget.firstName} ${widget.lastName}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(25),
+            Text(
+              title,
+              style: TextStyle(
+                color: text,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
-              child: Icon(Icons.emoji_emotions, color: Colors.white, size: 30),
+            ),
+            TextButton(
+              onPressed: onViewAll,
+              child: Text(
+                'View All',
+                style: TextStyle(color: primary, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
-        SizedBox(height: 20),
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.auto_awesome, color: Colors.amber, size: 24),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Your smile is our priority. Ready for your next visit?',
-                  style: TextStyle(color: Colors.white, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ...list.take(2).map((a) => _apptCard(a)),
+        const SizedBox(height: 10),
       ],
     ),
   );
 
-  Widget _buildStatsSection() => Padding(
-    padding: EdgeInsets.symmetric(horizontal: 20),
-    child: Row(
-      children: [
-        _buildStatCard(
-          'Upcoming',
-          '${_upcoming.length}',
-          Icons.event_available,
-          Color(0xFF4A6FA5),
-        ),
-        SizedBox(width: 16),
-        _buildStatCard(
-          'Completed',
-          '${_completed.length}',
-          Icons.check_circle,
-          Color(0xFF10B981),
-        ),
-        SizedBox(width: 16),
-        _buildStatCard(
-          'Total',
-          '${appointments.length}',
-          Icons.auto_awesome,
-          Color(0xFFF59E0B),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildStatCard(String l, String v, IconData i, Color c) => Expanded(
-    child: Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: c.withOpacity(0.1),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: c.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(i, color: c, size: 22),
-          ),
-          SizedBox(height: 8),
-          Text(
-            v,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          Text(l, style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-        ],
-      ),
-    ),
-  );
-
-  Widget _buildUpcomingSection() {
-    if (_upcoming.isEmpty) return _buildEmptyState();
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Upcoming Appointments',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              TextButton(
-                onPressed: () => setState(() => _selectedIndex = 2),
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A6FA5).withOpacity(0.1),
-                  foregroundColor: Color(0xFF4A6FA5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: Text('View All'),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          ..._upcoming.take(2).map((a) => _buildAppointmentCard(a)),
-          if (_upcoming.length > 2)
-            Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Center(
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4A6FA5).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    '+ ${_upcoming.length - 2} more',
-                    style: TextStyle(
-                      color: Color(0xFF4A6FA5),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAppointmentCard(Map<String, dynamic> a) => Container(
-    margin: EdgeInsets.only(bottom: 12),
-    padding: EdgeInsets.all(16),
+  Widget _apptCard(Map<String, dynamic> a) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(30),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.03),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-      ],
-      border: Border.all(
-        color: const Color(0xFF4A6FA5).withOpacity(0.2),
-        width: 1,
-      ),
+      color: card,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: border),
     ),
     child: Row(
       children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A6FA5), Color(0xFF6B8EC9)],
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Center(
-            child: Text(
-              a['time'].split(':')[0],
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
+        CircleAvatar(
+          backgroundColor: primary.withOpacity(0.15),
+          radius: 24,
+          child: Text(
+            a['time']?.split(':')[0] ?? '',
+            style: TextStyle(color: primary, fontWeight: FontWeight.bold),
           ),
         ),
-        SizedBox(width: 16),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                a['service'],
+                a['service'] ?? '',
                 style: TextStyle(
+                  color: text,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
-                  color: Color(0xFF1E293B),
                 ),
               ),
-              SizedBox(height: 4),
               Text(
-                a['doctor'],
-                style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 12,
-                    color: Color(0xFF94A3B8),
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    _formatDate(a['date']),
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
-                  ),
-                ],
+                a['doctor'] ?? '',
+                style: TextStyle(color: textMuted, fontSize: 12),
               ),
             ],
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Text(
-            'Upcoming',
-            style: TextStyle(
-              color: Colors.green,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
           ),
         ),
       ],
     ),
   );
 
-  Widget _buildHistoryPreview() {
-    if (_completed.isEmpty) return SizedBox();
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recent History',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              TextButton(
-                onPressed: _showHistory,
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A6FA5).withOpacity(0.1),
-                  foregroundColor: Color(0xFF4A6FA5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: Text('View All'),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          ..._completed.take(2).map((i) => _buildHistoryCard(i)),
-        ],
+  Widget _emptyState() => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(Icons.event_busy, size: 60, color: textMuted.withOpacity(0.4)),
+      const SizedBox(height: 16),
+      Text(
+        'No Appointments Yet',
+        style: TextStyle(
+          color: text,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-    );
-  }
+      const SizedBox(height: 8),
+      Text(
+        'Book your first dental service\nand keep your smile healthy!',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: textMuted, fontSize: 13),
+      ),
+    ],
+  );
 
-  Widget _buildHistoryCard(Map<String, dynamic> i) => Container(
-    margin: EdgeInsets.only(bottom: 12),
-    padding: EdgeInsets.all(16),
+  // ── FOOTER NAVIGATION ────────────────────────────
+  Widget _buildBottomNav() => Container(
+    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(30),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.03),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-      ],
-      border: Border.all(color: Colors.green.withOpacity(0.2), width: 1),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(Icons.check_circle, color: Colors.green, size: 24),
-        ),
-        SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                i['service'],
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                i['doctor'],
-                style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        Text(
-          _formatDate(i['date']),
-          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildEmptyState() => Padding(
-    padding: EdgeInsets.all(20),
-    child: Container(
-      padding: EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Color(0xFF4A6FA5).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Icon(Icons.event_busy, size: 50, color: Color(0xFF4A6FA5)),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'No Appointments Yet',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Book your first dental service now!',
-            style: TextStyle(color: Color(0xFF64748B)),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => setState(() => _selectedIndex = 1),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF4A6FA5),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              elevation: 0,
-            ),
-            child: Text('Book Now'),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _buildDrawer() => Drawer(
-    child: Column(
-      children: [
-        Container(
-          height: 220,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A6FA5), Color(0xFF6B8EC9), Color(0xFF8AAEE0)],
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(40),
-              bottomRight: Radius.circular(40),
-            ),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                top: -20,
-                right: -20,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -30,
-                left: -30,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(60),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${widget.firstName[0]}${widget.lastName[0]}',
-                          style: TextStyle(
-                            color: Color(0xFF4A6FA5),
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Spacer(),
-                    Text(
-                      '${widget.firstName} ${widget.lastName}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '@${widget.patientName}',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            padding: EdgeInsets.only(top: 20),
-            children: [
-              _drawerItem(
-                Icons.info_outline,
-                'About Clinic',
-                null,
-                isAbout: true,
-              ),
-              _drawerItem(
-                Icons.history_outlined,
-                'History',
-                null,
-                isHistory: true,
-              ),
-              _drawerItem(
-                Icons.qr_code_scanner,
-                'QR Scanner',
-                null,
-                isScanner: true,
-              ),
-              Divider(thickness: 1, height: 40, indent: 20, endIndent: 20),
-              _drawerItem(
-                Icons.logout_outlined,
-                'Logout',
-                null,
-                isLogout: true,
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _drawerItem(
-    IconData i,
-    String l,
-    int? idx, {
-    bool isHistory = false,
-    bool isScanner = false,
-    bool isLogout = false,
-    bool isAbout = false,
-  }) => ListTile(
-    leading: Container(
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isLogout
-            ? Colors.red.withOpacity(0.1)
-            : Color(0xFF4A6FA5).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Icon(
-        i,
-        color: isLogout ? Colors.red : Color(0xFF4A6FA5),
-        size: 22,
-      ),
-    ),
-    title: Text(
-      l,
-      style: TextStyle(
-        color: isLogout ? Colors.red : Color(0xFF1E293B),
-        fontWeight: FontWeight.w500,
-        fontSize: 16,
-      ),
-    ),
-    trailing: isLogout
-        ? null
-        : Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF94A3B8)),
-    onTap: () {
-      Navigator.pop(context);
-      if (isLogout) {
-        _showLogoutDialog();
-      } else if (isAbout)
-        _showAboutUs();
-      else if (isHistory)
-        _showHistory();
-      else if (isScanner)
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => QRScannerScreen(userAppointments: appointments),
-          ),
-        );
-      else
-        setState(() => _selectedIndex = idx!);
-    },
-  );
-
-  Widget _buildBottomNavBar() => Container(
-    margin: EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: const Color(0xFF4A6FA5), // Same color as header
-      borderRadius: BorderRadius.circular(35),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.1),
-          blurRadius: 20,
-          offset: Offset(0, -5),
-        ),
-      ],
+      color: card,
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: border),
+      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 20)],
     ),
     child: ClipRRect(
-      borderRadius: BorderRadius.circular(35),
+      borderRadius: BorderRadius.circular(28),
       child: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
-        backgroundColor: Colors.transparent,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white.withOpacity(0.6),
+        currentIndex: _idx,
+        onTap: (i) => setState(() => _idx = i),
+        backgroundColor: card,
+        selectedItemColor: primary,
+        unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        items: [
+        items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined, size: 24),
-            activeIcon: Container(
-              padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(Icons.home, color: Colors.white, size: 22),
-            ),
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services_outlined, size: 24),
-            activeIcon: Container(
-              padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(
-                Icons.medical_services,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
+            icon: Icon(Icons.medical_services_outlined),
+            activeIcon: Icon(Icons.medical_services),
             label: 'Services',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_outlined, size: 24),
-            activeIcon: Container(
-              padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(Icons.calendar_month, color: Colors.white, size: 22),
-            ),
+            icon: Icon(Icons.calendar_month_outlined),
+            activeIcon: Icon(Icons.calendar_month),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline, size: 24),
-            activeIcon: Container(
-              padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(Icons.person, color: Colors.white, size: 22),
-            ),
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
@@ -918,321 +470,64 @@ class _DashboardScreenState extends State<DashboardScreen>
     ),
   );
 
-  void _showAboutUs() => showDialog(
-    context: context,
-    builder: (_) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
-      child: Container(
-        padding: EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(35),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Color(0xFF4A6FA5).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Icon(Icons.info, color: Color(0xFF4A6FA5), size: 30),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'About Smile Art',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            SizedBox(height: 8),
-            Divider(indent: 50, endIndent: 50),
-            SizedBox(height: 16),
-            _infoRow(
-              Icons.location_on,
-              'Lower Ground Floor, Gaisano Grandmall Liloan',
-            ),
-            _infoRow(Icons.access_time, 'Open Daily: 10AM - 7PM'),
-            _infoRow(Icons.phone, '0960 434 9004'),
-            SizedBox(height: 20),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Color(0xFF4A6FA5).withOpacity(0.05),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Text(
-                'Est. 2020 - Providing quality dental care.',
-                style: TextStyle(color: Color(0xFF4A6FA5)),
-              ),
-            ),
-            SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF4A6FA5),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: Text('Close'),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  Widget _infoRow(IconData i, String t) => Padding(
-    padding: EdgeInsets.symmetric(vertical: 6),
-    child: Row(
+  // ── DRAWER ───────────────────────────────────────
+  Widget _drawer() => Drawer(
+    backgroundColor: card,
+    child: ListView(
+      padding: EdgeInsets.zero,
       children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Color(0xFF4A6FA5).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Icon(i, color: Color(0xFF4A6FA5), size: 18),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: Text(t, style: TextStyle(color: Color(0xFF1E293B))),
-        ),
-      ],
-    ),
-  );
-
-  void _showLogoutDialog() => showDialog(
-    context: context,
-    builder: (_) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
-      child: Container(
-        padding: EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(35),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Icon(Icons.logout, color: Colors.red, size: 30),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Logout',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Are you sure you want to logout?',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
-            SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacementNamed(context, '/');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Text('Logout'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  void _showHistory() => showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    builder: (_) => Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Text(
-                  'Treatment History',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                Spacer(),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF4A6FA5).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    '${_completed.length} total',
-                    style: TextStyle(
-                      color: Color(0xFF4A6FA5),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(thickness: 1, height: 1),
-          Expanded(
-            child: _completed.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Icon(
-                            Icons.history,
-                            size: 50,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No history yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Your completed appointments will appear here',
-                          style: TextStyle(color: Color(0xFF64748B)),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: EdgeInsets.all(16),
-                    itemCount: _completed.length,
-                    itemBuilder: (_, i) => _historyItem(_completed[i]),
-                  ),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _historyItem(Map<String, dynamic> i) => Container(
-    margin: EdgeInsets.only(bottom: 12),
-    padding: EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Color(0xFFF8FAFC),
-      borderRadius: BorderRadius.circular(30),
-      border: Border.all(color: Colors.green.withOpacity(0.2), width: 1),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(Icons.check_circle, color: Colors.green, size: 24),
-        ),
-        SizedBox(width: 12),
-        Expanded(
+        DrawerHeader(
+          decoration: BoxDecoration(gradient: grad),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text(
-                i['doctor'],
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+              CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Text(
+                  widget.firstName[0],
+                  style: TextStyle(
+                    color: primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 10),
               Text(
-                '${i['service']} • ${_formatDate(i['date'])}',
-                style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                '${widget.firstName} ${widget.lastName}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
         ),
+        ListTile(
+          leading: Icon(Icons.info, color: text),
+          title: Text('About Clinic', style: TextStyle(color: text)),
+          onTap: () => Navigator.pop(context),
+        ),
+        ListTile(
+          leading: Icon(Icons.history, color: text),
+          title: Text('History', style: TextStyle(color: text)),
+          onTap: () {
+            Navigator.pop(context);
+            setState(() => _idx = 2);
+          },
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.logout, color: Colors.red),
+          title: const Text('Logout', style: TextStyle(color: Colors.red)),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.pushReplacementNamed(context, '/');
+          },
+        ),
       ],
     ),
   );
-
-  String _formatDate(DateTime d) =>
-      '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month - 1]} ${d.day}, ${d.year}';
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
 }

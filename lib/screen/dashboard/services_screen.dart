@@ -4,7 +4,6 @@ class ServicesScreen extends StatefulWidget {
   final List<Map<String, dynamic>> appointments;
   final Function(Map<String, dynamic>) onBookAppointment;
   final String patientName, firstName, lastName;
-
   const ServicesScreen({
     super.key,
     required this.appointments,
@@ -18,403 +17,376 @@ class ServicesScreen extends StatefulWidget {
 }
 
 class _ServicesScreenState extends State<ServicesScreen> {
-  String? selectedService, selectedDoctor;
-  DateTime? selectedDate;
-  TimeOfDay? selectedTime;
-  DateTime _currentMonth = DateTime.now();
-  int _currentPage = 0;
-  late PageController _pageController;
+  String? _srv, _doc;
+  DateTime? _dat;
+  TimeOfDay? _tim;
+  DateTime _m = DateTime.now();
 
-  final List<Map<String, dynamic>> services = [
-    {
-      'n': 'Consultation',
-      'i': Icons.chat,
-      'd': 'Dental check-up',
-      'p': '500',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Panoramic X-Ray',
-      'i': Icons.radar,
-      'd': 'Full mouth X-ray',
-      'p': '1,000',
-      'c': Color(0xFF4A6FA5),
-    },
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+  // ── PREMIUM SLATE BLUE DARK MODE ──
+  Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
+  Color get card => isDark ? const Color(0xFF1E293B) : Colors.white;
+  Color get surface =>
+      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+  Color get text => isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
+  Color get textMuted =>
+      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  Color get border =>
+      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+
+  Color get primary => const Color(0xFF4A6CF7);
+  Color get accent => const Color(0xFF00D4FF);
+  Color get success => const Color(0xFF10B981);
+  Color get danger => const Color(0xFFEF4444); // Used in Calendar
+  Color get warning => const Color(0xFFF59E0B); // Used in Calendar
+
+  final _services = [
+    {'n': 'Consultation', 'i': Icons.chat_rounded, 'p': '₱500'},
+    {'n': 'Panoramic X-Ray', 'i': Icons.radar_rounded, 'p': '₱1,000'},
     {
       'n': 'Oral Prophylaxis',
-      'i': Icons.cleaning_services,
-      'd': 'Professional cleaning',
-      'p': '850-1,200',
-      'c': Color(0xFF4A6FA5),
+      'i': Icons.cleaning_services_rounded,
+      'p': '₱850–1,200',
     },
-    {
-      'n': 'Braces & Adjustments',
-      'i': Icons.medical_services,
-      'd': '5K down + monthly',
-      'p': '5K+1-2K/mo',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Tooth Extraction',
-      'i': Icons.healing,
-      'd': 'Simple extraction',
-      'p': '850-1,200',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Wisdom Tooth',
-      'i': Icons.medical_services,
-      'd': 'Surgical removal',
-      'p': '8K-13K',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Dental Filling',
-      'i': Icons.build,
-      'd': 'Cavity filling',
-      'p': '850-1,200',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Root Canal',
-      'i': Icons.psychology,
-      'd': 'Root canal',
-      'p': '8,000',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Dentures',
-      'i': Icons.face,
-      'd': 'Partial/full',
-      'p': 'Starts 1K',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Dental Bridges',
-      'i': Icons.medical_services,
-      'd': 'Fixed bridges',
-      'p': '1,000',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Dental Crown',
-      'i': Icons.king_bed,
-      'd': 'Crowns/jackets',
-      'p': '1,000',
-      'c': Color(0xFF4A6FA5),
-    },
-    {
-      'n': 'Teeth Whitening',
-      'i': Icons.color_lens,
-      'd': 'Professional',
-      'p': '3K/session',
-      'c': Color(0xFF4A6FA5),
-    },
+    {'n': 'Braces', 'i': Icons.medical_services_rounded, 'p': '₱5K+'},
+    {'n': 'Tooth Extraction', 'i': Icons.healing_rounded, 'p': '₱850–1,200'},
+    {'n': 'Wisdom Tooth', 'i': Icons.medical_services_rounded, 'p': '₱8K–13K'},
+    {'n': 'Dental Filling', 'i': Icons.build_rounded, 'p': '₱850–1,200'},
+    {'n': 'Root Canal', 'i': Icons.psychology_rounded, 'p': '₱8,000'},
+    {'n': 'Dentures', 'i': Icons.face_rounded, 'p': 'From ₱1K'},
+    {'n': 'Dental Bridges', 'i': Icons.medical_services_rounded, 'p': '₱1,000'},
+    {'n': 'Dental Crown', 'i': Icons.workspace_premium_rounded, 'p': '₱1,000'},
+    {'n': 'Teeth Whitening', 'i': Icons.color_lens_rounded, 'p': '₱3K/sess.'},
   ];
 
-  final List<Map<String, dynamic>> doctors = [
+  final _docs = [
     {
       'n': 'Dr. Justine Illustrisimo',
       's': 'Orthodontist',
-      'h': 'Mon-Fri 9-5',
+      'h': 'Mon–Fri 9–5',
       'a': ['09:00', '10:00', '11:00', '14:00', '15:00'],
-      'c': Color(0xFF4A6FA5),
     },
     {
       'n': 'Dr. Sarah Smith',
       's': 'General Dentist',
-      'h': 'Tue-Sat 10-6',
+      'h': 'Tue–Sat 10–6',
       'a': ['10:00', '11:00', '14:00', '15:00', '16:00'],
-      'c': Color(0xFF4A6FA5),
     },
     {
       'n': 'Dr. Michael Chen',
       's': 'Oral Surgeon',
-      'h': 'Mon-Thu 8-4',
+      'h': 'Mon–Thu 8–4',
       'a': ['08:00', '09:00', '10:00', '13:00', '14:00'],
-      'c': Color(0xFF4A6FA5),
     },
     {
       'n': 'Dr. Maria Santos',
       's': 'Prosthodontist',
-      'h': 'Mon-Wed-Fri 9-5',
+      'h': 'Mon/Wed/Fri 9–5',
       'a': ['09:00', '11:00', '13:00', '15:00', '16:00'],
-      'c': Color(0xFF4A6FA5),
     },
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(viewportFraction: 0.8);
+  // Smart Progress Bar tracking
+  int get _step {
+    if (_srv != null && _doc != null && _dat != null && _tim != null) return 5;
+    if (_srv != null && _doc != null && _dat != null) return 4;
+    if (_srv != null && _doc != null) return 3;
+    if (_srv != null || _doc != null) return 2;
+    return 1;
   }
 
+  Widget _pad(Widget w) =>
+      Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: w);
+
   @override
-  Widget build(BuildContext context) => Container(
-    color: const Color.fromARGB(255, 255, 255, 255),
-    child: CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // REMOVED: SliverToBoxAdapter(child: _buildHeader()),
-        SliverPadding(
-          padding: const EdgeInsets.all(20),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              _buildSectionTitle('Select Service', Icons.swipe),
-              const SizedBox(height: 20),
-              _buildServiceCarousel(),
-              const SizedBox(height: 20),
-              _buildPageIndicator(),
-              const SizedBox(height: 30),
-              _buildSectionTitle('Select Doctor', Icons.person_search),
-              const SizedBox(height: 20),
-              ...doctors.map(_buildDoctorCard),
-              if (selectedService != null && selectedDoctor != null) ...[
-                const SizedBox(height: 30),
-                _buildSectionTitle('Select Date', Icons.calendar_month),
-                const SizedBox(height: 20),
-                _buildCalendar(),
-                if (selectedDate != null) ...[
-                  const SizedBox(height: 30),
-                  _buildSectionTitle('Available Times', Icons.access_time),
-                  const SizedBox(height: 20),
-                  _buildTimeSlots(),
-                ],
-                if (selectedDate != null && selectedTime != null) ...[
-                  const SizedBox(height: 30),
-                  _buildConfirmButton(),
-                ],
-              ],
-              const SizedBox(height: 30),
-            ]),
-          ),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    return Container(
+      color: bg,
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.only(top: 115, bottom: 100),
+        children: [
+          _pad(_progressBar()),
+          const SizedBox(height: 24),
 
-  Widget _buildSectionTitle(String t, IconData i) => Row(
-    children: [
-      Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF4A6FA5).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Icon(i, color: const Color(0xFF4A6FA5), size: 18),
-      ),
-      const SizedBox(width: 12),
-      Text(
-        t,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1E293B),
-        ),
-      ),
-    ],
-  );
+          _pad(_title('Our Services', 'Swipe to select a dental service')),
+          const SizedBox(height: 12),
+          _servicesSwiper(),
 
-  Widget _buildServiceCarousel() => SizedBox(
-    height: 200, // INCREASED from 160 to 200 for bigger cards
-    child: PageView.builder(
-      controller: _pageController,
-      onPageChanged: (i) => setState(() {
-        _currentPage = i;
-        selectedService = services[i]['n'];
-        selectedDoctor = null;
-        selectedDate = null;
-        selectedTime = null;
-      }),
-      itemCount: services.length,
-      itemBuilder: (_, i) => _buildServiceCard(services[i], i == _currentPage),
-    ),
-  );
+          if (_srv != null) ...[_pad(_badge(Icons.medical_services, _srv!))],
 
-  Widget _buildServiceCard(Map<String, dynamic> s, bool isSelected) =>
-      GestureDetector(
-        onTap: () => setState(() {
-          selectedService = s['n'];
-          selectedDoctor = null;
-          selectedDate = null;
-          selectedTime = null;
-        }),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          transform: isSelected
-              ? (Matrix4.identity()..scale(1.02))
-              : Matrix4.identity(),
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? s['c'] : Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: isSelected ? Colors.transparent : Colors.grey[200]!,
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isSelected
-                    ? s['c'].withOpacity(0.3)
-                    : Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+          // DOCTORS NOW VISIBLE IMMEDIATELY
+          const SizedBox(height: 24),
+          _pad(_title('Your Doctor', 'Pick your preferred dentist')),
+          const SizedBox(height: 14),
+          ..._docs.map((d) => _pad(_docCard(d))),
+
+          // CALENDAR ONLY SHOWS WHEN BOTH ARE SELECTED
+          if (_srv != null && _doc != null) ...[
+            _pad(_badge(Icons.person, _doc!)),
+            const SizedBox(height: 24),
+            _pad(_title('Appointment Date', 'Choose a date')),
+            const SizedBox(height: 14),
+            _pad(_cal()),
+          ],
+
+          if (_srv != null && _doc != null && _dat != null) ...[
+            _pad(
+              _badge(
+                Icons.calendar_today,
+                '${_dat!.day}/${_dat!.month}/${_dat!.year}',
               ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14), // INCREASED padding
-                      decoration: BoxDecoration(
-                        color: (isSelected ? Colors.white : s['c']).withOpacity(
-                          0.2,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Icon(
-                        s['i'],
-                        color: isSelected ? Colors.white : s['c'],
-                        size: 32, // INCREASED icon size
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            s['n'],
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17, // INCREASED font size
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF1E293B),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            s['d'],
-                            style: TextStyle(
-                              fontSize: 13, // INCREASED font size
-                              color: isSelected
-                                  ? Colors.white70
-                                  : const Color(0xFF64748B),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: (isSelected ? Colors.white : s['c'])
-                                  .withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '₱${s['p']}',
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : s['c'],
-                                fontSize: 13, // INCREASED font size
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 24),
+            _pad(_title('Available Times', 'Pick a time slot')),
+            const SizedBox(height: 14),
+            _pad(_times()),
+          ],
+
+          if (_srv != null && _doc != null && _dat != null && _tim != null) ...[
+            _pad(
+              _badge(
+                Icons.access_time,
+                _fmt(
+                  '${_tim!.hour.toString().padLeft(2, '0')}:${_tim!.minute.toString().padLeft(2, '0')}',
                 ),
               ),
-              if (isSelected)
-                const Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                    size: 20,
+            ),
+            const SizedBox(height: 28),
+            _pad(
+              ElevatedButton(
+                onPressed: _confirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-            ],
-          ),
-        ),
-      );
-
-  Widget _buildPageIndicator() => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: List.generate(
-      services.length,
-      (i) => AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        width: _currentPage == i ? 24 : 8,
-        height: 8,
-        decoration: BoxDecoration(
-          color: _currentPage == i ? const Color(0xFF4A6FA5) : Colors.grey[300],
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ),
-    ),
-  );
-
-  Widget _buildDoctorCard(Map<String, dynamic> d) {
-    bool isSelected = selectedDoctor == d['n'];
-    return GestureDetector(
-      onTap: () => setState(() {
-        selectedDoctor = d['n'];
-        selectedDate = null;
-        selectedTime = null;
-      }),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? d['c'] : Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: isSelected ? Colors.transparent : Colors.grey[200]!,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected
-                  ? d['c'].withOpacity(0.3)
-                  : Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Center(
-                child: Text(
-                  d['n'][0],
+                child: const Text(
+                  'Confirm Booking',
                   style: TextStyle(
-                    color: d['c'],
-                    fontSize: 24,
+                    color: Colors.white,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _servicesSwiper() => SizedBox(
+    height: 145,
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: _services.length,
+      itemBuilder: (_, i) {
+        final s = _services[i];
+        final sel = _srv == s['n'];
+        return GestureDetector(
+          // Important fix: Doesn't wipe out "Doctor" selection if you just change your mind on a "Service"
+          onTap: () => setState(() {
+            _srv = s['n'] as String;
+            _dat = _tim = null;
+          }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(right: 12),
+            width: 115,
+            decoration: BoxDecoration(
+              color: sel ? primary : card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: sel ? accent : border),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  s['i'] as IconData,
+                  color: sel ? Colors.white : primary,
+                  size: 30,
+                ),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    s['n'] as String,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: sel ? Colors.white : text,
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  s['p'] as String,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: sel ? Colors.white70 : textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+
+  Widget _progressBar() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    decoration: BoxDecoration(
+      color: card,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: border),
+    ),
+    child: Row(
+      children: List.generate(7, (i) {
+        if (i.isOdd)
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              height: 3,
+              decoration: BoxDecoration(
+                color: _step > i ~/ 2 + 1 ? success : border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          );
+        int n = i ~/ 2 + 1;
+        bool done = _step > n, active = _step == n;
+        return Expanded(
+          flex: 2,
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: done
+                    ? success
+                    : active
+                    ? primary
+                    : surface,
+                child: done
+                    ? const Icon(Icons.check, color: Colors.white, size: 14)
+                    : Text(
+                        '$n',
+                        style: TextStyle(
+                          color: active ? Colors.white : textMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                ['Service', 'Doctor', 'Date', 'Time'][n - 1],
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: done
+                      ? success
+                      : active
+                      ? primary
+                      : textMuted,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    ),
+  );
+
+  Widget _title(String t, String s) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        t,
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w800,
+          color: text,
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(s, style: TextStyle(fontSize: 12, color: textMuted)),
+    ],
+  );
+
+  Widget _badge(IconData i, String l) => Align(
+    alignment: Alignment.centerLeft,
+    child: Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: success.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: success.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle, color: success, size: 16),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              l,
+              style: TextStyle(
+                color: success,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _docCard(Map d) {
+    final sel = _doc == d['n'];
+    return GestureDetector(
+      // Important fix: Doesn't wipe out "Service" selection if you just change your mind on a "Doctor"
+      onTap: () => setState(() {
+        _doc = d['n'];
+        _dat = _tim = null;
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: sel ? primary : card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: sel ? accent : border),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: sel ? Colors.white24 : primary.withOpacity(0.1),
+              child: Text(
+                (d['n'] as String)[4],
+                style: TextStyle(
+                  color: sel ? Colors.white : primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,237 +395,144 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     d['n'],
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF1E293B),
+                      color: sel ? Colors.white : text,
                     ),
                   ),
                   Text(
-                    d['s'],
+                    '${d['s']} · ${d['h']}',
                     style: TextStyle(
-                      color: isSelected
-                          ? Colors.white70
-                          : const Color(0xFF64748B),
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (isSelected ? Colors.white : d['c']).withOpacity(
-                        0.2,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: isSelected ? Colors.white : d['c'],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          d['h'],
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : d['c'],
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                      fontSize: 12,
+                      color: sel ? Colors.white70 : textMuted,
                     ),
                   ),
                 ],
               ),
             ),
-            if (isSelected)
-              const Icon(Icons.check_circle, color: Colors.white, size: 24),
+            if (sel) const Icon(Icons.check_circle, color: Colors.white),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCalendar() => Container(
-    padding: const EdgeInsets.all(20),
+  Widget _cal() => Container(
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(35),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.03),
-          blurRadius: 15,
-          offset: const Offset(0, 5),
-        ),
-      ],
+      color: card,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: border),
     ),
     child: Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _calNav(
-              Icons.chevron_left,
-              () => setState(
-                () => _currentMonth = DateTime(
-                  _currentMonth.year,
-                  _currentMonth.month - 1,
-                ),
+            IconButton(
+              icon: Icon(Icons.chevron_left, color: primary),
+              onPressed: () =>
+                  setState(() => _m = DateTime(_m.year, _m.month - 1)),
+            ),
+            Text(
+              '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][_m.month - 1]} ${_m.year}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: text,
+                fontSize: 16,
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4A6FA5).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 18,
-                    color: const Color(0xFF4A6FA5),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _fmtMonth(_currentMonth),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _calNav(
-              Icons.chevron_right,
-              () => setState(
-                () => _currentMonth = DateTime(
-                  _currentMonth.year,
-                  _currentMonth.month + 1,
-                ),
-              ),
+            IconButton(
+              icon: Icon(Icons.chevron_right, color: primary),
+              onPressed: () =>
+                  setState(() => _m = DateTime(_m.year, _m.month + 1)),
             ),
           ],
         ),
-        const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
               .map(
-                (d) => SizedBox(
-                  width: 35,
-                  child: Text(
-                    d,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF4A6FA5),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                (d) => Text(
+                  d,
+                  style: TextStyle(
+                    color: textMuted,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               )
               .toList(),
         ),
-        const SizedBox(height: 10),
-        GridView.count(
+        const SizedBox(height: 8),
+        GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 7,
-          children: _buildDays(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+          ),
+          itemCount:
+              DateTime(_m.year, _m.month + 1, 0).day +
+              DateTime(_m.year, _m.month, 1).weekday -
+              1,
+          itemBuilder: (_, i) {
+            final first = DateTime(_m.year, _m.month, 1).weekday - 1;
+            if (i < first) return const SizedBox();
+            final d = i - first + 1,
+                date = DateTime(_m.year, _m.month, d),
+                now = DateTime.now();
+            final isToday =
+                now.day == d && now.month == _m.month && now.year == _m.year;
+            final sel = _dat?.day == d && _dat?.month == _m.month;
+            return GestureDetector(
+              onTap: () => setState(() {
+                _dat = date;
+                _tim = null;
+              }),
+              child: Container(
+                margin: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: sel
+                      ? primary
+                      : isToday
+                      ? primary.withOpacity(0.1)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    '$d',
+                    style: TextStyle(
+                      color: sel
+                          ? Colors.white
+                          : isToday
+                          ? primary
+                          : text,
+                      fontWeight: sel || isToday
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ],
     ),
   );
 
-  List<Widget> _buildDays() {
-    int days = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
-    int first = DateTime(_currentMonth.year, _currentMonth.month, 1).weekday;
-    List<Widget> list = [];
-    for (int i = 1; i < first; i++) {
-      list.add(Container());
-    }
-    for (int d = 1; d <= days; d++) {
-      DateTime date = DateTime(_currentMonth.year, _currentMonth.month, d);
-      bool sel =
-          selectedDate?.day == d && selectedDate?.month == _currentMonth.month;
-      bool today =
-          DateTime.now().day == d &&
-          DateTime.now().month == _currentMonth.month &&
-          DateTime.now().year == _currentMonth.year;
-      list.add(
-        GestureDetector(
-          onTap: () => setState(() => selectedDate = date),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.all(4),
-            height: 45,
-            decoration: BoxDecoration(
-              color: sel
-                  ? const Color(0xFF4A6FA5)
-                  : today
-                  ? const Color(0xFF4A6FA5).withOpacity(0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: Center(
-              child: Text(
-                '$d',
-                style: TextStyle(
-                  color: sel
-                      ? Colors.white
-                      : today
-                      ? const Color(0xFF4A6FA5)
-                      : const Color(0xFF1E293B),
-                  fontWeight: sel || today
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return list;
-  }
-
-  Widget _calNav(IconData i, VoidCallback o) => Container(
-    decoration: BoxDecoration(
-      color: const Color(0xFF4A6FA5).withOpacity(0.1),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: IconButton(
-      icon: Icon(i, color: const Color(0xFF4A6FA5), size: 22),
-      onPressed: o,
-      padding: const EdgeInsets.all(8),
-    ),
-  );
-
-  Widget _buildTimeSlots() {
-    List<String> slots = doctors.firstWhere(
-      (d) => d['n'] == selectedDoctor,
-    )['a'];
+  Widget _times() {
+    final slots = (_docs.firstWhere((d) => d['n'] == _doc)['a'] as List)
+        .cast<String>();
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: 12,
+      runSpacing: 12,
       children: slots.map((t) {
-        bool sel =
-            selectedTime != null &&
-            '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}' ==
+        final sel =
+            _tim != null &&
+            '${_tim!.hour.toString().padLeft(2, '0')}:${_tim!.minute.toString().padLeft(2, '0')}' ==
                 t;
         return GestureDetector(
           onTap: () => setState(
-            () => selectedTime = TimeOfDay(
+            () => _tim = TimeOfDay(
               hour: int.parse(t.split(':')[0]),
               minute: int.parse(t.split(':')[1]),
             ),
@@ -662,25 +541,15 @@ class _ServicesScreenState extends State<ServicesScreen> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: sel ? const Color(0xFF4A6FA5) : Colors.white,
-              borderRadius: BorderRadius.circular(40),
-              border: Border.all(
-                color: sel ? Colors.transparent : Colors.grey[300]!,
-              ),
-              boxShadow: sel
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF4A6FA5).withOpacity(0.3),
-                        blurRadius: 10,
-                      ),
-                    ]
-                  : null,
+              color: sel ? primary : card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: sel ? accent : border),
             ),
             child: Text(
-              _fmtTime(t),
+              _fmt(t),
               style: TextStyle(
-                color: sel ? Colors.white : const Color(0xFF1E293B),
-                fontWeight: sel ? FontWeight.bold : null,
+                color: sel ? Colors.white : text,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -689,228 +558,117 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 
-  Widget _buildConfirmButton() => SizedBox(
-    width: double.infinity,
-    height: 60,
-    child: ElevatedButton(
-      onPressed: _confirmBooking,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      ),
-      child: Ink(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4A6FA5), Color(0xFF6B8EC9)],
-          ),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF4A6FA5).withOpacity(0.4),
-              blurRadius: 15,
-              offset: Offset(0, 5),
+  void _book() {
+    widget.onBookAppointment({
+      'service': _srv!,
+      'doctor': _doc!,
+      'date': _dat!,
+      'time':
+          '${_tim!.hour.toString().padLeft(2, '0')}:${_tim!.minute.toString().padLeft(2, '0')}',
+      'status': 'upcoming',
+    });
+    setState(() {
+      _srv = _doc = _dat = _tim = null;
+      _m = DateTime.now();
+    });
+    Navigator.pop(context);
+  }
+
+  void _confirm() => showDialog(
+    context: context,
+    builder: (_) => Dialog(
+      backgroundColor: card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: primary.withOpacity(0.1),
+              child: Icon(Icons.event_available, color: primary, size: 30),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Confirm Booking',
+              style: TextStyle(
+                color: text,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Divider(height: 30),
+            _row(Icons.medical_services, 'Service', _srv!),
+            _row(Icons.person, 'Doctor', _doc!),
+            _row(
+              Icons.calendar_today,
+              'Date',
+              '${_dat!.day}/${_dat!.month}/${_dat!.year}',
+            ),
+            _row(
+              Icons.access_time,
+              'Time',
+              _fmt(
+                '${_tim!.hour.toString().padLeft(2, '0')}:${_tim!.minute.toString().padLeft(2, '0')}',
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Cancel', style: TextStyle(color: textMuted)),
+                  ),
+                ),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _book,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text(
+                      'Confirm',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-        child: Container(
-          alignment: Alignment.center,
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 24),
-              SizedBox(width: 10),
-              Text(
-                'Confirm Booking',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     ),
   );
 
-  void _confirmBooking() {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(35),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A6FA5).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF4A6FA5),
-                  size: 30,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Confirm Booking',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _detailRow(Icons.medical_services, 'Service', selectedService!),
-              _detailRow(Icons.person, 'Doctor', selectedDoctor!),
-              _detailRow(
-                Icons.calendar_today,
-                'Date',
-                '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-              ),
-              _detailRow(
-                Icons.access_time,
-                'Time',
-                _fmtTime(
-                  '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(color: Color(0xFF64748B)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Add the appointment
-                        widget.onBookAppointment({
-                          'doctor': selectedDoctor!,
-                          'service': selectedService!,
-                          'date': selectedDate!,
-                          'time':
-                              '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
-                          'status': 'upcoming',
-                        });
-
-                        // Pop the dialog
-                        Navigator.pop(context);
-
-                        // Show success message
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text('Booking confirmed!'),
-                              ],
-                            ),
-                            backgroundColor: const Color(0xFF4A6FA5),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                        );
-
-                        // RESET FORM
-                        setState(() {
-                          selectedService = null;
-                          selectedDoctor = null;
-                          selectedDate = null;
-                          selectedTime = null;
-                          _currentMonth = DateTime.now();
-                          _currentPage = 0;
-                          _pageController.jumpToPage(0);
-                        });
-
-                        // DO NOT NAVIGATE HERE - The parent dashboard will handle navigation
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A6FA5),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text('Confirm'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _detailRow(IconData i, String l, String v) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
+  Widget _row(IconData i, String l, String v) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
     child: Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4A6FA5).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(i, size: 18, color: const Color(0xFF4A6FA5)),
-        ),
-        const SizedBox(width: 12),
+        Icon(i, color: primary, size: 18),
+        const SizedBox(width: 10),
         Text(
-          '$l:',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
-          ),
+          '$l: ',
+          style: TextStyle(color: textMuted, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(width: 8),
         Expanded(
-          child: Text(v, style: const TextStyle(color: Color(0xFF64748B))),
+          child: Text(v, style: TextStyle(color: text)),
         ),
       ],
     ),
   );
 
-  String _fmtMonth(DateTime d) =>
-      '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month - 1]} ${d.year}';
-
-  String _fmtTime(String t) {
-    int h = int.parse(t.split(':')[0]);
-    int m = int.parse(t.split(':')[1]);
-    String period = h >= 12 ? 'PM' : 'AM';
-    int displayHour = h > 12 ? h - 12 : h;
-    displayHour = displayHour == 0 ? 12 : displayHour;
-    return '$displayHour:${m.toString().padLeft(2, '0')} $period';
+  String _fmt(String t) {
+    final c = t.split(':'), h = int.parse(c[0]), m = int.parse(c[1]);
+    return '${h > 12
+        ? h - 12
+        : h == 0
+        ? 12
+        : h}:${m.toString().padLeft(2, '0')} ${h >= 12 ? 'PM' : 'AM'}';
   }
-
-  void scale(double d) {}
 }

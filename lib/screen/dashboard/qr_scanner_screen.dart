@@ -1,164 +1,208 @@
 import 'package:flutter/material.dart';
 
-class QRScannerScreen extends StatelessWidget {
-  final List<Map<String, dynamic>>?
-  userAppointments; // Optional user appointments
+class QRScannerScreen extends StatefulWidget {
+  final List<Map<String, dynamic>>? userAppointments;
+  const QRScannerScreen({super.key, this.userAppointments});
 
-  const QRScannerScreen({
-    super.key,
-    this.userAppointments, // Pass the current user's appointments
-  });
+  @override
+  State<QRScannerScreen> createState() => _QRScannerScreenState();
+}
+
+class _QRScannerScreenState extends State<QRScannerScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _anim;
+
+  // ── ☀️ DYNAMIC THEMED (Matches Dashboard & Profile perfectly) ──
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+
+  // ── PREMIUM SLATE BLUE DARK MODE ──
+  Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
+  Color get card => isDark ? const Color(0xFF1E293B) : Colors.white;
+  Color get surface =>
+      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+  Color get text => isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
+  Color get textMuted =>
+      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  Color get border =>
+      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+
+  Color get primary => const Color(0xFF4A6CF7);
+  Color get accent => const Color(0xFF00D4FF);
+  Color get success => const Color(0xFF10B981);
+
+  @override
+  void initState() {
+    super.initState();
+    // Smooth scanning laser animation!
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool hasAppointments =
-        userAppointments != null && userAppointments!.isNotEmpty;
+    final appts = widget.userAppointments ?? [];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'QR Scanner',
-          style: TextStyle(
-            color: Color(0xFF2C3E50),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF4A6FA5)),
+          icon: Icon(Icons.arrow_back_rounded, color: text),
           onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'QR Scanner',
+          style: TextStyle(color: text, fontWeight: FontWeight.w900),
         ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
+        physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Scanner Preview
+            // ── ANIMATED SCANNER PREVIEW ──
             Container(
-              height: 220,
+              height: 280,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                color: card,
+                borderRadius: BorderRadius.circular(36),
+                border: Border.all(color: border),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: primary.withOpacity(0.05),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2C3E50).withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFF4A6FA5),
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.qr_code_scanner,
-                        color: Color(0xFF4A6FA5),
-                        size: 60,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 80,
-                    child: Container(
-                      width: 140,
-                      height: 2,
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Faint Background Box
+                    Container(
+                      width: 180,
+                      height: 180,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Color(0xFF4A6FA5),
-                            Colors.transparent,
-                          ],
+                        color: primary.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+
+                    // Static Icon
+                    Icon(
+                      Icons.qr_code_scanner_rounded,
+                      color: primary.withOpacity(0.2),
+                      size: 100,
+                    ),
+
+                    // Animated Laser Line
+                    AnimatedBuilder(
+                      animation: _anim,
+                      builder: (_, __) => Positioned(
+                        top:
+                            50 + (_anim.value * 160), // Laser drops down bounds
+                        child: Container(
+                          width: 160,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                accent,
+                                Colors.transparent,
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: accent,
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  // Corner decorations
-                  ..._buildCornerDecorations(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
 
-            // Instructions Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Color(0xFF4A6FA5)),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Scan the QR code at the front desk to confirm your appointment',
-                      style: TextStyle(color: Color(0xFF2C3E50), fontSize: 14),
-                    ),
-                  ),
-                ],
+                    // Corner Decorations
+                    ..._buildCorners(),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
 
-            // Appointments Header
+            // ── INFO CARD ──
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: primary.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: primary),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'Scan the QR code at the clinic front desk to confirm your arrival instantly.',
+                      style: TextStyle(
+                        color: primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // ── APPOINTMENTS HEADER ──
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Your Appointments',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50),
+                    fontWeight: FontWeight.w900,
+                    color: text,
+                    letterSpacing: -0.5,
                   ),
                 ),
-                if (hasAppointments)
+                if (appts.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                      horizontal: 12,
+                      vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A6FA5).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: surface,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${userAppointments!.length} total',
-                      style: const TextStyle(
-                        color: Color(0xFF4A6FA5),
-                        fontSize: 12,
+                      '${appts.length} Total',
+                      style: TextStyle(
+                        color: textMuted,
                         fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
                     ),
                   ),
@@ -166,35 +210,28 @@ class QRScannerScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Appointment List or Empty State
-            hasAppointments
-                ? ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: userAppointments!.length,
-                    itemBuilder: (context, index) =>
-                        _buildAppointmentItem(userAppointments![index]),
-                  )
-                : _buildEmptyState(),
+            // ── APPOINTMENT LIST / EMPTY STATE ──
+            appts.isEmpty
+                ? _emptyState()
+                : Column(children: appts.map((a) => _apptCard(a)).toList()),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildCornerDecorations() {
+  // ── HELPER: SCANNER CORNERS ──
+  List<Widget> _buildCorners() {
+    final d = BorderSide(color: primary, width: 4);
     return [
       Positioned(
         top: 20,
         left: 20,
         child: Container(
-          width: 20,
-          height: 20,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-              left: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-            ),
+            border: Border(top: d, left: d),
           ),
         ),
       ),
@@ -202,13 +239,10 @@ class QRScannerScreen extends StatelessWidget {
         top: 20,
         right: 20,
         child: Container(
-          width: 20,
-          height: 20,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-              right: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-            ),
+            border: Border(top: d, right: d),
           ),
         ),
       ),
@@ -216,13 +250,10 @@ class QRScannerScreen extends StatelessWidget {
         bottom: 20,
         left: 20,
         child: Container(
-          width: 20,
-          height: 20,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-              left: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-            ),
+            border: Border(bottom: d, left: d),
           ),
         ),
       ),
@@ -230,64 +261,61 @@ class QRScannerScreen extends StatelessWidget {
         bottom: 20,
         right: 20,
         child: Container(
-          width: 20,
-          height: 20,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-              right: BorderSide(color: const Color(0xFF4A6FA5), width: 3),
-            ),
+            border: Border(bottom: d, right: d),
           ),
         ),
       ),
     ];
   }
 
-  Widget _buildAppointmentItem(Map<String, dynamic> appt) {
+  // ── HELPER: APPOINTMENT CARD ──
+  Widget _apptCard(Map<dynamic, dynamic> a) {
+    final status = a['status'] ?? 'upcoming';
+    final isUp = status == 'upcoming';
+    final col = isUp ? primary : success;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFF4A6FA5).withOpacity(0.1),
-              shape: BoxShape.circle,
+              color: col.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.calendar_today,
-              color: Color(0xFF4A6FA5),
-              size: 20,
-            ),
+            child: Icon(Icons.calendar_today_rounded, color: col, size: 20),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  appt['service'] ?? 'Appointment',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  a['service'] ?? 'Appointment',
+                  style: TextStyle(
+                    color: text,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  'with ${appt['doctor'] ?? 'Doctor'}',
-                  style: const TextStyle(
+                  'with ${a['doctor'] ?? 'Doctor'}',
+                  style: TextStyle(
+                    color: textMuted,
                     fontSize: 12,
-                    color: Color(0xFF7F8C8D),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -297,16 +325,19 @@ class QRScannerScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A6FA5).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: surface,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  appt['time'] ?? '--:--',
-                  style: const TextStyle(
-                    color: Color(0xFF4A6FA5),
-                    fontWeight: FontWeight.bold,
+                  a['time'] ?? '--:--',
+                  style: TextStyle(
+                    color: text,
+                    fontWeight: FontWeight.w900,
                     fontSize: 12,
                   ),
                 ),
@@ -315,15 +346,15 @@ class QRScannerScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: col.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  'Upcoming',
+                child: Text(
+                  isUp ? 'Upcoming' : 'Completed',
                   style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 10,
+                    color: col,
                     fontWeight: FontWeight.bold,
+                    fontSize: 10,
                   ),
                 ),
               ),
@@ -334,37 +365,36 @@ class QRScannerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() => Center(
+  // ── HELPER: EMPTY STATE ──
+  Widget _emptyState() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(32),
+    decoration: BoxDecoration(
+      color: card,
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: border),
+    ),
     child: Column(
       children: [
-        const SizedBox(height: 40),
         Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            color: const Color(0xFF4A6FA5).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.qr_code_scanner,
-            color: Color(0xFF4A6FA5),
-            size: 50,
-          ),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
+          child: Icon(Icons.event_busy_rounded, color: textMuted, size: 36),
         ),
-        const SizedBox(height: 16),
-        const Text(
-          'No Appointments Yet',
+        const SizedBox(height: 20),
+        Text(
+          'No Appointments',
           style: TextStyle(
+            color: text,
+            fontWeight: FontWeight.w900,
             fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2C3E50),
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Book a service to see your appointments here',
-          style: TextStyle(color: Color(0xFF7F8C8D)),
+        const SizedBox(height: 6),
+        Text(
+          'Book a service first to see it here for QR check-in.',
           textAlign: TextAlign.center,
+          style: TextStyle(color: textMuted, fontSize: 13, height: 1.4),
         ),
       ],
     ),
