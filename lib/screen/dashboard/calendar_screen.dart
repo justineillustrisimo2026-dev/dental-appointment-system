@@ -9,10 +9,17 @@ class CalendarScreen extends StatefulWidget {
     required this.patientName,
     required this.firstName,
     required this.lastName,
+    required Null Function(idx, newDate, newTime) onReschedule,
   });
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
+
+class newDate {}
+
+class newTime {}
+
+class idx {}
 
 class _CalendarScreenState extends State<CalendarScreen>
     with SingleTickerProviderStateMixin {

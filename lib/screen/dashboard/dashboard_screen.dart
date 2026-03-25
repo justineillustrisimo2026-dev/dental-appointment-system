@@ -5,6 +5,7 @@ import '../profile/profile_screen.dart';
 import 'services_screen.dart';
 import 'calendar_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'about_clinic_screen.dart'; // Add this line right here!
 
 class DashboardScreen extends StatefulWidget {
   final String patientName, firstName, lastName, contactNo;
@@ -105,6 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               patientName: widget.patientName,
               firstName: widget.firstName,
               lastName: widget.lastName,
+              onReschedule: (idx p1, newDate p2, newTime p3) {},
             ),
             ProfileScreen(
               patientName: widget.patientName,
@@ -202,7 +204,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── HOME DASHBOARD ───────────────────────────────
   Widget _dashHome() => SingleChildScrollView(
-    padding: const EdgeInsets.only(top: 100, bottom: 30),
+    padding: const EdgeInsets.only(
+      top: 100,
+      bottom: 40,
+    ), // Added slight bottom padding
+    physics: const BouncingScrollPhysics(),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -210,9 +216,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 24),
         _statsRow(),
         const SizedBox(height: 30),
+
         appointments.isEmpty
             ? Container(
-                height: 250, // Strict height area to center the empty state
+                height: 200,
                 alignment: Alignment.center,
                 child: _emptyState(),
               )
@@ -232,6 +239,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                 ],
               ),
+
+        const SizedBox(height: 32),
+
+        // ── NEW: ORAL HEALTH TIPS CAROUSEL ──
+        _tipsSection(),
       ],
     ),
   );
@@ -469,6 +481,116 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ),
   );
+  Widget _tipsSection() {
+    final tips = [
+      {
+        't': 'Floss Every Day',
+        'd':
+            'Flossing removes plaque below the gumline where a toothbrush simply cannot reach.',
+        'i': Icons.cleaning_services_rounded,
+      },
+      {
+        't': 'Change Your Brush',
+        'd':
+            'Replace your toothbrush every 3-4 months, or sooner if the bristles are visibly frayed.',
+        'i': Icons.brush_rounded,
+      },
+      {
+        't': 'Limit Sugary Snacks',
+        'd':
+            'Sugar converts into acid in the mouth, which can rapidly erode the enamel of your teeth.',
+        'i': Icons.fastfood_rounded,
+      },
+      {
+        't': "Don't Brush Too Hard",
+        'd':
+            'Brushing aggressively can permanently damage your gums and wear down enamel.',
+        'i': Icons.front_hand_rounded,
+      },
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Daily Dental Tips',
+            style: TextStyle(
+              color: text,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 170,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: tips.length,
+            itemBuilder: (ctx, i) {
+              final t = tips[i];
+              return Container(
+                width: 250,
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: card,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primary.withOpacity(0.04),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(t['i'] as IconData, color: primary, size: 24),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      t['t'] as String,
+                      style: TextStyle(
+                        color: text,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: Text(
+                        t['d'] as String,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textMuted,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
   // ── DRAWER ───────────────────────────────────────
   Widget _drawer() => Drawer(
@@ -508,7 +630,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ListTile(
           leading: Icon(Icons.info, color: text),
           title: Text('About Clinic', style: TextStyle(color: text)),
-          onTap: () => Navigator.pop(context),
+          onTap: () {
+            Navigator.pop(context); // Closes the drawer instantly
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutClinicScreen()),
+            ); // Smoothly slides open your new premium clinic screen!
+          },
         ),
         ListTile(
           leading: Icon(Icons.history, color: text),
