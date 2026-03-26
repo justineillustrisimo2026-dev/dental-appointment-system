@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 
 class QRScannerScreen extends StatefulWidget {
   final List<Map<String, dynamic>>? userAppointments;
-  const QRScannerScreen({super.key, this.userAppointments});
+  final bool isDarkMode;
+  const QRScannerScreen({
+    super.key,
+    this.userAppointments,
+    this.isDarkMode = false,
+  });
 
   @override
   State<QRScannerScreen> createState() => _QRScannerScreenState();
@@ -11,9 +16,29 @@ class QRScannerScreen extends StatefulWidget {
 class _QRScannerScreenState extends State<QRScannerScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
+  late bool _isDark;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDark = widget.isDarkMode;
+    // Smooth scanning laser animation!
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant QRScannerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isDarkMode != widget.isDarkMode) {
+      setState(() => _isDark = widget.isDarkMode);
+    }
+  }
 
   // ── ☀️ DYNAMIC THEMED (Matches Dashboard & Profile perfectly) ──
-  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+  bool get isDark => _isDark;
 
   // ── PREMIUM SLATE BLUE DARK MODE ──
   Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
@@ -29,16 +54,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   Color get primary => const Color(0xFF4A6CF7);
   Color get accent => const Color(0xFF00D4FF);
   Color get success => const Color(0xFF10B981);
-
-  @override
-  void initState() {
-    super.initState();
-    // Smooth scanning laser animation!
-    _anim = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-  }
 
   @override
   void dispose() {

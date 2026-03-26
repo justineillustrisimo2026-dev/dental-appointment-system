@@ -41,22 +41,90 @@ class _ServicesScreenState extends State<ServicesScreen> {
   Color get warning => const Color(0xFFF59E0B); // Used in Calendar
 
   final _services = [
-    {'n': 'Consultation', 'i': Icons.chat_rounded, 'p': '₱500'},
-    {'n': 'Panoramic X-Ray', 'i': Icons.radar_rounded, 'p': '₱1,000'},
+    {
+      'n': 'Consultation',
+      'i': Icons.chat_rounded,
+      'p': '₱500',
+      'dur': '30 mins',
+      'desc': 'Initial dental examination and consultation with your dentist',
+    },
+    {
+      'n': 'Panoramic X-Ray',
+      'i': Icons.radar_rounded,
+      'p': '₱1,000',
+      'dur': '15 mins',
+      'desc': 'Comprehensive panoramic view of your entire dental structure',
+    },
     {
       'n': 'Oral Prophylaxis',
       'i': Icons.cleaning_services_rounded,
       'p': '₱850–1,200',
+      'dur': '45 mins',
+      'desc': 'Professional teeth cleaning to remove tartar and plaque buildup',
     },
-    {'n': 'Braces', 'i': Icons.medical_services_rounded, 'p': '₱5K+'},
-    {'n': 'Tooth Extraction', 'i': Icons.healing_rounded, 'p': '₱850–1,200'},
-    {'n': 'Wisdom Tooth', 'i': Icons.medical_services_rounded, 'p': '₱8K–13K'},
-    {'n': 'Dental Filling', 'i': Icons.build_rounded, 'p': '₱850–1,200'},
-    {'n': 'Root Canal', 'i': Icons.psychology_rounded, 'p': '₱8,000'},
-    {'n': 'Dentures', 'i': Icons.face_rounded, 'p': 'From ₱1K'},
-    {'n': 'Dental Bridges', 'i': Icons.medical_services_rounded, 'p': '₱1,000'},
-    {'n': 'Dental Crown', 'i': Icons.workspace_premium_rounded, 'p': '₱1,000'},
-    {'n': 'Teeth Whitening', 'i': Icons.color_lens_rounded, 'p': '₱3K/sess.'},
+    {
+      'n': 'Braces',
+      'i': Icons.medical_services_rounded,
+      'p': '₱5K+',
+      'dur': 'Multiple sessions',
+      'desc': 'Orthodontic treatment for teeth alignment and correction',
+    },
+    {
+      'n': 'Tooth Extraction',
+      'i': Icons.healing_rounded,
+      'p': '₱850–1,200',
+      'dur': '30-45 mins',
+      'desc': 'Safe removal of damaged or decayed teeth',
+    },
+    {
+      'n': 'Wisdom Tooth',
+      'i': Icons.medical_services_rounded,
+      'p': '₱8K–13K',
+      'dur': '45-60 mins',
+      'desc': 'Specialized extraction of impacted wisdom teeth',
+    },
+    {
+      'n': 'Dental Filling',
+      'i': Icons.build_rounded,
+      'p': '₱850–1,200',
+      'dur': '30 mins',
+      'desc': 'Restoration of cavities with tooth-colored composite material',
+    },
+    {
+      'n': 'Root Canal',
+      'i': Icons.psychology_rounded,
+      'p': '₱8,000',
+      'dur': '60-90 mins',
+      'desc': 'Treatment to save an infected or damaged tooth nerve',
+    },
+    {
+      'n': 'Dentures',
+      'i': Icons.face_rounded,
+      'p': 'From ₱1K',
+      'dur': 'Multiple sittings',
+      'desc': 'Custom-made artificial teeth replacement solutions',
+    },
+    {
+      'n': 'Dental Bridges',
+      'i': Icons.medical_services_rounded,
+      'p': '₱1,000',
+      'dur': 'Multiple sittings',
+      'desc': 'Fixed prosthetic solution to replace missing teeth',
+    },
+    {
+      'n': 'Dental Crown',
+      'i': Icons.workspace_premium_rounded,
+      'p': '₱1,000',
+      'dur': 'Multiple sittings',
+      'desc': 'Protective cap to restore tooth strength and appearance',
+    },
+    {
+      'n': 'Teeth Whitening',
+      'i': Icons.color_lens_rounded,
+      'p': '₱3K/sess.',
+      'dur': '60 mins',
+      'desc': 'Professional teeth bleaching for a brighter, whiter smile',
+    },
   ];
 
   final _docs = [
@@ -480,16 +548,23 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 now = DateTime.now();
             final isToday =
                 now.day == d && now.month == _m.month && now.year == _m.year;
+            final isPast = date.isBefore(
+              DateTime(now.year, now.month, now.day),
+            );
             final sel = _dat?.day == d && _dat?.month == _m.month;
             return GestureDetector(
-              onTap: () => setState(() {
-                _dat = date;
-                _tim = null;
-              }),
+              onTap: isPast
+                  ? null
+                  : () => setState(() {
+                      _dat = date;
+                      _tim = null;
+                    }),
               child: Container(
                 margin: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: sel
+                  color: isPast
+                      ? surface.withOpacity(0.5)
+                      : sel
                       ? primary
                       : isToday
                       ? primary.withOpacity(0.1)
@@ -500,12 +575,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
                   child: Text(
                     '$d',
                     style: TextStyle(
-                      color: sel
+                      color: isPast
+                          ? textMuted.withOpacity(0.5)
+                          : sel
                           ? Colors.white
                           : isToday
                           ? primary
                           : text,
-                      fontWeight: sel || isToday
+                      fontWeight: (sel || isToday) && !isPast
                           ? FontWeight.bold
                           : FontWeight.normal,
                     ),
@@ -559,6 +636,25 @@ class _ServicesScreenState extends State<ServicesScreen> {
   }
 
   void _book() {
+    // Validate that the selected date is not in the past
+    final now = DateTime.now();
+    final selectedDate = DateTime(_dat!.year, _dat!.month, _dat!.day);
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (selectedDate.isBefore(today)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Cannot book appointments for past dates',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     widget.onBookAppointment({
       'service': _srv!,
       'doctor': _doc!,

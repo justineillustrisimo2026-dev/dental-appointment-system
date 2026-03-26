@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../profile/profile_screen.dart';
 import 'services_screen.dart';
 import 'calendar_screen.dart';
+import 'history_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'about_clinic_screen.dart'; // Add this line right here!
 
@@ -55,6 +56,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appointments.where((a) => a['status'] == 'upcoming').toList();
   List<Map<String, dynamic>> get _completed =>
       appointments.where((a) => a['status'] == 'completed').toList();
+
+  final _services = [
+    {
+      'n': 'Consultation',
+      'i': Icons.chat_rounded,
+      'p': '₱500',
+      'dur': '30 mins',
+      'desc': 'Initial dental examination and consultation with your dentist',
+    },
+    {
+      'n': 'Panoramic X-Ray',
+      'i': Icons.radar_rounded,
+      'p': '₱1,000',
+      'dur': '15 mins',
+      'desc': 'Comprehensive panoramic view of your entire dental structure',
+    },
+    {
+      'n': 'Oral Prophylaxis',
+      'i': Icons.cleaning_services_rounded,
+      'p': '₱850–1,200',
+      'dur': '45 mins',
+      'desc': 'Professional teeth cleaning to remove tartar and plaque buildup',
+    },
+    {
+      'n': 'Braces',
+      'i': Icons.medical_services_rounded,
+      'p': '₱5K+',
+      'dur': 'Multiple sessions',
+      'desc': 'Orthodontic treatment for teeth alignment and correction',
+    },
+    {
+      'n': 'Tooth Extraction',
+      'i': Icons.healing_rounded,
+      'p': '₱850–1,200',
+      'dur': '30-45 mins',
+      'desc': 'Safe removal of damaged or decayed teeth',
+    },
+    {
+      'n': 'Wisdom Tooth',
+      'i': Icons.medical_services_rounded,
+      'p': '₱8K–13K',
+      'dur': '45-60 mins',
+      'desc': 'Specialized extraction of impacted wisdom teeth',
+    },
+    {
+      'n': 'Dental Filling',
+      'i': Icons.build_rounded,
+      'p': '₱850–1,200',
+      'dur': '30 mins',
+      'desc': 'Restoration of cavities with tooth-colored composite material',
+    },
+    {
+      'n': 'Root Canal',
+      'i': Icons.psychology_rounded,
+      'p': '₱8,000',
+      'dur': '60-90 mins',
+      'desc': 'Treatment to save an infected or damaged tooth nerve',
+    },
+    {
+      'n': 'Dentures',
+      'i': Icons.face_rounded,
+      'p': 'From ₱1K',
+      'dur': 'Multiple sittings',
+      'desc': 'Custom-made artificial teeth replacement solutions',
+    },
+    {
+      'n': 'Dental Bridges',
+      'i': Icons.medical_services_rounded,
+      'p': '₱1,000',
+      'dur': 'Multiple sittings',
+      'desc': 'Fixed prosthetic solution to replace missing teeth',
+    },
+    {
+      'n': 'Dental Crown',
+      'i': Icons.workspace_premium_rounded,
+      'p': '₱1,000',
+      'dur': 'Multiple sittings',
+      'desc': 'Protective cap to restore tooth strength and appearance',
+    },
+    {
+      'n': 'Teeth Whitening',
+      'i': Icons.color_lens_rounded,
+      'p': '₱3K/sess.',
+      'dur': '60 mins',
+      'desc': 'Professional teeth bleaching for a brighter, whiter smile',
+    },
+  ];
 
   void _addAppt(Map<String, dynamic> a) {
     setState(() => appointments.add(a));
@@ -172,8 +260,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      QRScannerScreen(userAppointments: appointments),
+                  builder: (_) => QRScannerScreen(
+                    userAppointments: appointments,
+                    isDarkMode: isDark,
+                  ),
                 ),
               ),
             ),
@@ -232,14 +322,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       () => setState(() => _idx = 2),
                     ),
                   if (_completed.isNotEmpty)
-                    _section(
-                      'History',
-                      _completed,
-                      () => setState(() => _idx = 2),
-                    ),
+                    _section('History', _completed, () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HistoryScreen(
+                            appointments: appointments,
+                            patientName: widget.patientName,
+                            firstName: widget.firstName,
+                            lastName: widget.lastName,
+                            isDarkMode: isDark,
+                          ),
+                        ),
+                      );
+                    }),
                 ],
               ),
 
+        const SizedBox(height: 30),
+
+        // ── NEW: SERVICES SHOWCASE ──
+        _servicesSection(),
         const SizedBox(height: 32),
 
         // ── NEW: ORAL HEALTH TIPS CAROUSEL ──
@@ -592,6 +695,156 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _servicesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Our Services',
+                style: TextStyle(
+                  color: text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _idx = 1),
+                child: Text(
+                  'View All',
+                  style: TextStyle(
+                    color: primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 240,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: _services.length,
+            itemBuilder: (ctx, i) {
+              final srv = _services[i];
+              return Container(
+                width: 220,
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: card,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primary.withOpacity(0.04),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Icon Container
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        srv['i'] as IconData,
+                        color: primary,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Service Name
+                    Text(
+                      srv['n'] as String,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: text,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Duration
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_rounded, color: primary, size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          srv['dur'] as String,
+                          style: TextStyle(
+                            color: textMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Description (truncated)
+                    Expanded(
+                      child: Text(
+                        srv['desc'] as String,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textMuted,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Price
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        srv['p'] as String,
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── DRAWER ───────────────────────────────────────
   Widget _drawer() => Drawer(
     backgroundColor: card,
@@ -634,7 +887,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Navigator.pop(context); // Closes the drawer instantly
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AboutClinicScreen()),
+              MaterialPageRoute(
+                builder: (_) => AboutClinicScreen(isDarkMode: isDark),
+              ),
             ); // Smoothly slides open your new premium clinic screen!
           },
         ),
@@ -643,7 +898,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           title: Text('History', style: TextStyle(color: text)),
           onTap: () {
             Navigator.pop(context);
-            setState(() => _idx = 2);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => HistoryScreen(
+                  appointments: appointments,
+                  patientName: widget.patientName,
+                  firstName: widget.firstName,
+                  isDarkMode: isDark,
+                  lastName: widget.lastName,
+                ),
+              ),
+            );
           },
         ),
         const Divider(),

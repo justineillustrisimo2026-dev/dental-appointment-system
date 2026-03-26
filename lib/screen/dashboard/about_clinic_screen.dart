@@ -1,24 +1,42 @@
 import 'package:flutter/material.dart';
 
-class AboutClinicScreen extends StatelessWidget {
-  const AboutClinicScreen({super.key});
+class AboutClinicScreen extends StatefulWidget {
+  final bool isDarkMode;
+
+  const AboutClinicScreen({super.key, this.isDarkMode = false});
+
+  @override
+  State<AboutClinicScreen> createState() => _AboutClinicScreenState();
+}
+
+class _AboutClinicScreenState extends State<AboutClinicScreen> {
+  late bool isDark;
+
+  @override
+  void initState() {
+    super.initState();
+    isDark = widget.isDarkMode;
+  }
+
+  @override
+  void didUpdateWidget(AboutClinicScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isDarkMode != widget.isDarkMode) {
+      setState(() => isDark = widget.isDarkMode);
+    }
+  }
 
   // ── ☀️ DYNAMIC THEMED (Matches Dashboard Automatically) ──
-  bool isDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
-
-  // ── PREMIUM SLATE BLUE DARK MODE ──
-  Color bg(BuildContext c) =>
-      isDark(c) ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
-  Color card(BuildContext c) =>
-      isDark(c) ? const Color(0xFF1E293B) : Colors.white;
-  Color surface(BuildContext c) =>
-      isDark(c) ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-  Color text(BuildContext c) =>
-      isDark(c) ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
-  Color textMuted(BuildContext c) =>
-      isDark(c) ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-  Color border(BuildContext c) =>
-      isDark(c) ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+  Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
+  Color get cardColor => isDark ? const Color(0xFF1E293B) : Colors.white;
+  Color get surface =>
+      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+  Color get textColor =>
+      isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
+  Color get textMutedColor =>
+      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  Color get borderColor =>
+      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
 
   Color get primary => const Color(0xFF4A6CF7);
   Color get accent => const Color(0xFF00D4FF);
@@ -26,18 +44,18 @@ class AboutClinicScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg(context),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: bg(context),
+        backgroundColor: bg,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: text(context)),
+          icon: Icon(Icons.arrow_back_rounded, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'About Clinic',
-          style: TextStyle(color: text(context), fontWeight: FontWeight.w900),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w900),
         ),
       ),
       body: SingleChildScrollView(
@@ -123,6 +141,48 @@ class AboutClinicScreen extends StatelessWidget {
             ),
             const SizedBox(height: 36),
 
+            // ── CLINIC OVERVIEW ──
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'About Us',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Smile Art Dental Clinic is dedicated to quality dental care with modern technology, personalized treatment plans, and compassionate patient service.',
+                    style: TextStyle(
+                      color: textMutedColor,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
             // ── EXACT CLINIC DETAILS ──
             _infoCard(
               context,
@@ -147,7 +207,7 @@ class AboutClinicScreen extends StatelessWidget {
               child: Text(
                 'Operating Hours',
                 style: TextStyle(
-                  color: text(context),
+                  color: textColor,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.5,
@@ -156,11 +216,12 @@ class AboutClinicScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(24),
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: card(context),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: border(context)),
+                color: cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor),
               ),
               child: Column(
                 children: [
@@ -181,7 +242,7 @@ class AboutClinicScreen extends StatelessWidget {
               child: Text(
                 'Meet Our Specialists',
                 style: TextStyle(
-                  color: text(context),
+                  color: textColor,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.5,
@@ -203,91 +264,110 @@ class AboutClinicScreen extends StatelessWidget {
 
   // ── HELPER WIDGETS ──
   Widget _infoCard(BuildContext c, IconData icon, String title, String desc) =>
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: card(c),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: border(c)),
+      InkWell(
+        onTap: () {
+          // Optional: add call/email actions broadcast
+        },
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      desc,
+                      style: TextStyle(
+                        color: textMutedColor,
+                        fontSize: 13,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+      );
+
+  Widget _hourRow(BuildContext c, String day, String time, bool open) =>
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: primary.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
+            Flexible(
+              child: Text(
+                day,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
-              child: Icon(icon, color: primary, size: 24),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: text(c),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    desc,
-                    style: TextStyle(
-                      color: textMuted(c),
-                      fontSize: 13,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: open
+                    ? primary.withOpacity(0.1)
+                    : const Color(0xFFEF4444).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                time,
+                style: TextStyle(
+                  color: open ? primary : const Color(0xFFEF4444),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ),
           ],
         ),
       );
 
-  Widget _hourRow(BuildContext c, String day, String time, bool open) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        day,
-        style: TextStyle(
-          color: text(c),
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
-      ),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: open
-              ? primary.withOpacity(0.1)
-              : const Color(0xFFEF4444).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          time,
-          style: TextStyle(
-            color: open ? primary : const Color(0xFFEF4444),
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    ],
-  );
-
   Widget _docCard(BuildContext c, String n, String s) => Container(
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: card(c),
+      color: cardColor,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: border(c)),
+      border: Border.all(color: borderColor),
     ),
     child: Row(
       children: [
@@ -311,7 +391,7 @@ class AboutClinicScreen extends StatelessWidget {
               Text(
                 n,
                 style: TextStyle(
-                  color: text(c),
+                  color: textColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -320,7 +400,7 @@ class AboutClinicScreen extends StatelessWidget {
               Text(
                 s,
                 style: TextStyle(
-                  color: textMuted(c),
+                  color: textMutedColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
