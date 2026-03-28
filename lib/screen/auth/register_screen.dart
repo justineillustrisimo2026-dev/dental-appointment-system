@@ -3,6 +3,7 @@ import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
@@ -18,23 +19,14 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool isLoading = false, obscure = true;
   late AnimationController _animController;
 
-  // ── ☀️ DYNAMIC THEMED (Matches Login and Dashboard perfectly) ──
-  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+  // ── ✨ LUXURY GOLD THEME COLORS ──
+  final Color goldPrimary = const Color(0xFFD4AF37); // Metallic Gold
+  final Color goldDark = const Color(0xFFA67C00); // Deep Gold
+  final Color goldLight = const Color(0xFFF9E4B7); // Champagne Gold
 
-  // ── PREMIUM SLATE BLUE DARK MODE ──
-  Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
-  Color get card => isDark ? const Color(0xFF1E293B) : Colors.white;
-  Color get surface =>
-      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-  Color get text => isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
-  Color get textMuted =>
-      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-  Color get border =>
-      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
-
-  Color get primary => const Color(0xFF4A6CF7);
-  Color get accent => const Color(0xFF00D4FF);
-  Color get danger => const Color(0xFFEF4444);
+  Color get bg => Colors.white;
+  Color get text => const Color(0xFF1E293B);
+  Color get textMuted => const Color(0xFF64748B);
 
   @override
   void initState() {
@@ -62,17 +54,20 @@ class _RegisterScreenState extends State<RegisterScreen>
         c3.text.isEmpty ||
         c4.text.isEmpty ||
         c5.text.isEmpty) {
-      return _showMsg('Please fill all fields', danger);
+      return _showMsg('Please fill all fields', Colors.redAccent);
     }
     if (c4.text.length < 6) {
-      return _showMsg('Password must be at least 6 characters', danger);
+      return _showMsg(
+        'Password must be at least 6 characters',
+        Colors.redAccent,
+      );
     }
 
     setState(() => isLoading = true);
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() => isLoading = false);
-      _showMsg('Account created! Please login.', primary);
+      _showMsg('Account created! Please login.', goldDark);
 
       Navigator.pushReplacement(
         context,
@@ -88,32 +83,24 @@ class _RegisterScreenState extends State<RegisterScreen>
     });
   }
 
-  void _showMsg(
-    String msg,
-    Color color,
-  ) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Row(
-        children: [
-          const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              msg,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+  void _showMsg(String msg, Color color) =>
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            msg,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
-        ],
-      ),
-      backgroundColor: color,
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.all(20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    ),
-  );
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -128,99 +115,59 @@ class _RegisterScreenState extends State<RegisterScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── SLEEK HEADER LAYOUT ──
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: border),
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_rounded,
-                          color: text,
-                          size: 20,
-                        ),
+                // ── ✨ TOP LOGO & BRANDING ──
+                Center(
+                  child: Column(
+                    children: [
+                      Image.asset(
+                        'assets/clinic_logo.png',
+                        width: 140, // Elegant size for the register header
+                        fit: BoxFit.contain,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'SMILE ART',
-                            style: TextStyle(
-                              color: text,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          Text(
-                            'DENTAL CLINIC',
-                            style: TextStyle(
-                              color: primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        Icons.medical_services_rounded,
-                        color: primary,
-                        size: 22,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 30),
 
+                // ── ✨ TOP LOGO & BRANDING ──
+                // (This part is around line 130 of your code)
                 Text(
                   'Create Account',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
-                    color: text,
+                    color:
+                        goldDark, // <-- CHANGE THIS FROM 'text' TO 'goldDark'
                     letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Join our dental family securely',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: textMuted,
+                    color:
+                        goldDark, // <-- CHANGE THIS FROM 'textMuted' TO 'goldDark'
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 32),
 
-                // ── REGISTRATION FORM FLOATING CARD ──
+                // ── 🏆 GOLD REGISTRATION CARD ──
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: card,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [goldPrimary, goldDark], // Matches your Login box
+                    ),
                     borderRadius: BorderRadius.circular(36),
-                    border: Border.all(color: border),
                     boxShadow: [
                       BoxShadow(
-                        color: primary.withOpacity(0.04),
+                        color: goldDark.withOpacity(0.3),
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
@@ -251,40 +198,40 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                       const SizedBox(height: 32),
 
-                      // ── CREATE ACCOUNT BUTTON ──
+                      // ── ✨ SIGN UP BUTTON (Premium White on Gold) ──
                       GestureDetector(
                         onTap: isLoading ? null : _register,
                         child: Container(
                           width: double.infinity,
                           height: 56,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [primary, accent]),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color: primary.withOpacity(0.35),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
                           child: Center(
                             child: isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 24,
                                     height: 24,
                                     child: CircularProgressIndicator(
-                                      color: Colors.white,
+                                      color: goldDark,
                                       strokeWidth: 3,
                                     ),
                                   )
-                                : const Text(
-                                    'CREATE ACCOUNT',
+                                : Text(
+                                    'SIGN UP',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: goldDark,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w900,
-                                      letterSpacing: 1,
+                                      letterSpacing: 1.5,
                                     ),
                                   ),
                           ),
@@ -296,7 +243,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                 const SizedBox(height: 32),
 
-                // ── ALREADY HAVE ACCOUNT LINK ──
+                // ── 🔗 BACK TO LOGIN ──
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -315,9 +262,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                       child: Text(
                         'Login',
                         style: TextStyle(
-                          color: primary,
+                          color: goldDark,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
+                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ),
@@ -332,7 +280,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  // ── CUSTOM INPUT FIELD HELPER ──
+  // ── 🎨 CUSTOM INPUT FIELD HELPER (Styled for Gold Card) ──
   Widget _inputField(
     TextEditingController ctrl,
     IconData icon,
@@ -343,9 +291,8 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
+        color: Colors.white, // Pure white for high contrast inside the gold box
+        borderRadius: BorderRadius.circular(15),
       ),
       child: TextField(
         controller: ctrl,
@@ -357,7 +304,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           fontSize: 15,
         ),
         decoration: InputDecoration(
-          icon: Icon(icon, color: primary, size: 22),
+          icon: Icon(icon, color: goldDark, size: 22),
           border: InputBorder.none,
           hintText: hint,
           hintStyle: TextStyle(color: textMuted, fontWeight: FontWeight.normal),

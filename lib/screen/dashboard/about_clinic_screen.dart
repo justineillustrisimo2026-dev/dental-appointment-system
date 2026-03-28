@@ -26,20 +26,19 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
     }
   }
 
-  // ── ☀️ DYNAMIC THEMED (Matches Dashboard Automatically) ──
-  Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
-  Color get cardColor => isDark ? const Color(0xFF1E293B) : Colors.white;
-  Color get surface =>
-      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-  Color get textColor =>
-      isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
+  // ── ✨ LUXURY GOLD THEME COLORS ──
+  final Color goldPrimary = const Color(0xFFD4AF37);
+  final Color goldDark = const Color(0xFFA67C00);
+  final Color goldLight = const Color(0xFFF9E4B7);
+
+  Color get bg => isDark ? const Color(0xFF0F172A) : Colors.white;
+  Color get cardColor =>
+      isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+  Color get textColor => isDark ? Colors.white : const Color(0xFF1E293B);
   Color get textMutedColor =>
       isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
   Color get borderColor =>
       isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
-
-  Color get primary => const Color(0xFF4A6CF7);
-  Color get accent => const Color(0xFF00D4FF);
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +49,7 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: textColor),
+          icon: Icon(Icons.arrow_back_rounded, color: goldDark),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -60,28 +59,23 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 20,
-          bottom: 60,
-        ),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 60),
         child: Column(
           children: [
-            // ── HERO BANNER ──
+            // ── 🏆 PREMIUM HERO BANNER (White Badge & Centered Gold Logo) ──
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [primary, accent],
+                  colors: [goldPrimary, goldDark],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(36),
                 boxShadow: [
                   BoxShadow(
-                    color: primary.withOpacity(0.35),
+                    color: goldDark.withOpacity(0.35),
                     blurRadius: 24,
                     offset: const Offset(0, 10),
                   ),
@@ -89,15 +83,34 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
               ),
               child: Column(
                 children: [
+                  // ✨ PREMIUM WHITE BADGE ✨
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    width: 110,
+                    height: 110,
+                    // Padding creates the "frame" around your logo
+                    padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Text('🦷', style: TextStyle(fontSize: 44)),
+                    child: Image.asset(
+                      'assets/clinic_logo.png', // Ensure this is a transparent PNG
+                      fit: BoxFit.contain, // Fits perfectly within the padding
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.medical_services_rounded,
+                        color: Color(0xFFA67C00),
+                        size: 40,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const Text(
                     'SMILE ART',
                     style: TextStyle(
@@ -116,10 +129,10 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
                       letterSpacing: 4,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                      horizontal: 14,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
@@ -127,135 +140,118 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
-                      'DENTAL X ORTHO X COSMETIC',
+                      'DENTAL • ORTHO • COSMETIC',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
+                        letterSpacing: 1.2,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+
             const SizedBox(height: 36),
 
-            // ── CLINIC OVERVIEW ──
+            // ── 📄 CLINIC OVERVIEW ──
+            _sectionHeader('About Us'),
+            const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 color: cardColor,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'About Us',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Smile Art Dental Clinic is dedicated to quality dental care with modern technology, personalized treatment plans, and compassionate patient service.',
-                    style: TextStyle(
-                      color: textMutedColor,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Smile Art Dental Clinic is dedicated to quality dental care with modern technology, personalized treatment plans, and compassionate patient service. We believe every patient deserves a masterpiece smile.',
+                style: TextStyle(
+                  color: textMutedColor,
+                  fontSize: 14,
+                  height: 1.6,
+                ),
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            // ── EXACT CLINIC DETAILS ──
+            // ── 📍 CONTACT DETAILS ──
+            _sectionHeader('Contact Information'),
+            const SizedBox(height: 12),
             _infoCard(
-              context,
               Icons.location_on_rounded,
               'Visit Us',
-              'LG, Gaisano Grandmall,\nLiloan, Philippines',
+              'LG, Gaisano Grandmall, Liloan, Philippines',
             ),
-            const SizedBox(height: 16),
-            _infoCard(context, Icons.phone_rounded, 'Call Us', '0960 434 9004'),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            _infoCard(Icons.phone_rounded, 'Call Us', '0960 434 9004'),
+            const SizedBox(height: 12),
             _infoCard(
-              context,
               Icons.email_rounded,
               'Email Us',
               'smileart.dentalavenue@gmail.com',
             ),
-            const SizedBox(height: 36),
 
-            // ── EXACT CLINIC HOURS ──
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Operating Hours',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
+
+            // ── ⏰ OPERATING HOURS ──
+            _sectionHeader('Operating Hours'),
+            const SizedBox(height: 12),
             Container(
-              width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: borderColor),
+                color: goldPrimary.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: goldLight.withOpacity(0.5)),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  _hourRow(
-                    context,
-                    'Open Daily (Mon-Sun)',
-                    '10:00 AM - 7:00 PM',
-                    true,
+                  Expanded(
+                    child: Text(
+                      'Open Daily (Mon-Sun)',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: goldPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '10:00 AM - 7:00 PM',
+                      style: TextStyle(
+                        color: goldDark,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 36),
 
-            // ── OUR TEAM ──
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Meet Our Specialists',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _docCard(context, 'Dr. Justine Illustrisimo', 'Lead Orthodontist'),
-            _docCard(context, 'Dr. Sarah Smith', 'General Dentist'),
-            _docCard(context, 'Dr. Michael Chen', 'Oral Surgeon'),
-            _docCard(context, 'Dr. Maria Santos', 'Prosthodontist'),
+            const SizedBox(height: 32),
 
-            const SizedBox(height: 24),
+            // ── 👨‍⚕️ SPECIALISTS ──
+            _sectionHeader('Meet Our Specialists'),
+            const SizedBox(height: 12),
+            _docCard('Dr. Justine Illustrisimo', 'Lead Orthodontist'),
+            _docCard('Dr. Sarah Smith', 'General Dentist'),
+            _docCard('Dr. Michael Chen', 'Oral Surgeon'),
+            _docCard('Dr. Maria Santos', 'Prosthodontist'),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -263,105 +259,67 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
   }
 
   // ── HELPER WIDGETS ──
-  Widget _infoCard(BuildContext c, IconData icon, String title, String desc) =>
-      InkWell(
-        onTap: () {
-          // Optional: add call/email actions broadcast
-        },
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: primary, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      desc,
-                      style: TextStyle(
-                        color: textMutedColor,
-                        fontSize: 13,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+  Widget _sectionHeader(String title) => Align(
+    alignment: Alignment.centerLeft,
+    child: Text(
+      title,
+      style: TextStyle(
+        color: textColor,
+        fontSize: 18,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.5,
+      ),
+    ),
+  );
 
-  Widget _hourRow(BuildContext c, String day, String time, bool open) =>
-      Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Flexible(
-              child: Text(
-                day,
+  Widget _infoCard(IconData icon, String title, String desc) => Container(
+    margin: const EdgeInsets.only(bottom: 4),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: borderColor),
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: goldPrimary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: goldDark, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
                 style: TextStyle(
                   color: textColor,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  fontSize: 15,
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: open
-                    ? primary.withOpacity(0.1)
-                    : const Color(0xFFEF4444).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                time,
+              const SizedBox(height: 4),
+              Text(
+                desc,
                 style: TextStyle(
-                  color: open ? primary : const Color(0xFFEF4444),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  color: textMutedColor,
+                  fontSize: 13,
+                  height: 1.4,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
-  Widget _docCard(BuildContext c, String n, String s) => Container(
+  Widget _docCard(String n, String s) => Container(
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
@@ -373,11 +331,11 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
       children: [
         CircleAvatar(
           radius: 24,
-          backgroundColor: primary.withOpacity(0.15),
+          backgroundColor: goldPrimary.withOpacity(0.1),
           child: Text(
-            n[4],
+            n.split(' ').last[0],
             style: TextStyle(
-              color: primary,
+              color: goldDark,
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
@@ -396,18 +354,11 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
                   fontSize: 16,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                s,
-                style: TextStyle(
-                  color: textMutedColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text(s, style: TextStyle(color: textMutedColor, fontSize: 13)),
             ],
           ),
         ),
+        Icon(Icons.stars_rounded, color: goldPrimary, size: 20),
       ],
     ),
   );

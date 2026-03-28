@@ -6,7 +6,7 @@ import 'services_screen.dart';
 import 'calendar_screen.dart';
 import 'history_screen.dart';
 import 'qr_scanner_screen.dart';
-import 'about_clinic_screen.dart'; // Add this line right here!
+import 'about_clinic_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String patientName, firstName, lastName, contactNo;
@@ -26,123 +26,133 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> appointments = [];
 
-  // ☀️ Starts App in Light Mode default!
   bool isDark = false;
 
-  // ── UPDATED THEME: SLEEK BLACK SHADES FOR DARK MODE ──
-  Color get bg => isDark
-      ? const Color(0xFF0F172A)
-      : const Color(0xFFF4F6F9); // Deep Slate Blue Background
-  Color get card =>
-      isDark ? const Color(0xFF1E293B) : Colors.white; // Elevated Blue Card
-  Color get surface => isDark
-      ? const Color(0xFF334155)
-      : const Color(0xFFE2E8F0); // Active Blue Surface
-  Color get text => isDark
-      ? const Color(0xFFF8FAFC)
-      : const Color(0xFF1E293B); // Icy White Text
-  Color get textMuted => isDark
-      ? const Color(0xFF94A3B8)
-      : const Color(0xFF64748B); // Cool Blue-Grey Text
-  Color get border => isDark
-      ? const Color(0xFF475569)
-      : const Color(0xFFE2E8F0); // Soft Blue Border
+  // ── ✨ LUXURY GOLD THEME ──
+  final Color goldPrimary = const Color(0xFFD4AF37);
+  final Color goldDark = const Color(0xFFA67C00);
+  final Color goldLight = const Color(0xFFF9E4B7);
 
-  final primary = const Color(0xFF4A6CF7);
-  final accent = const Color(0xFF00D4FF);
-  LinearGradient get grad => LinearGradient(colors: [primary, accent]);
+  Color get bg => isDark ? const Color(0xFF0F172A) : Colors.white;
+  Color get card => isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+  Color get surface =>
+      isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+  Color get text => isDark ? Colors.white : const Color(0xFF1E293B);
+  Color get textMuted =>
+      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  Color get border =>
+      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
 
-  List<Map<String, dynamic>> get _upcoming =>
-      appointments.where((a) => a['status'] == 'upcoming').toList();
-  List<Map<String, dynamic>> get _completed =>
-      appointments.where((a) => a['status'] == 'completed').toList();
+  LinearGradient get goldGrad => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [goldPrimary, goldDark],
+  );
 
-  final _services = [
+  // ── 🏥 UPDATED SERVICES LIST ──
+  final List<Map<String, dynamic>> _services = [
+    {
+      'n': 'Braces & Adjustments',
+      'i': Icons.health_and_safety_rounded,
+      'p': '₱5K Down / ₱1K-2K Adj.',
+      'dur': '1-2 Years',
+      'desc':
+          'A long-term orthodontic solution to align crowded teeth and correct your bite for a perfect smile.',
+    },
     {
       'n': 'Consultation',
       'i': Icons.chat_rounded,
       'p': '₱500',
       'dur': '30 mins',
-      'desc': 'Initial dental examination and consultation with your dentist',
+      'desc':
+          'A comprehensive oral examination to discuss your dental goals and create a personalized treatment plan.',
     },
     {
       'n': 'Panoramic X-Ray',
       'i': Icons.radar_rounded,
       'p': '₱1,000',
       'dur': '15 mins',
-      'desc': 'Comprehensive panoramic view of your entire dental structure',
+      'desc':
+          'A detailed 2D dental X-ray that captures the entire mouth in a single image, including teeth and jaws.',
     },
     {
       'n': 'Oral Prophylaxis',
       'i': Icons.cleaning_services_rounded,
       'p': '₱850–1,200',
       'dur': '45 mins',
-      'desc': 'Professional teeth cleaning to remove tartar and plaque buildup',
-    },
-    {
-      'n': 'Braces',
-      'i': Icons.medical_services_rounded,
-      'p': '₱5K+',
-      'dur': 'Multiple sessions',
-      'desc': 'Orthodontic treatment for teeth alignment and correction',
+      'desc':
+          'Professional teeth cleaning to remove stubborn tartar and plaque, preventing cavities and gum disease.',
     },
     {
       'n': 'Tooth Extraction',
       'i': Icons.healing_rounded,
       'p': '₱850–1,200',
       'dur': '30-45 mins',
-      'desc': 'Safe removal of damaged or decayed teeth',
+      'desc':
+          'Safe and painless removal of damaged or decayed teeth to protect the health of your surrounding teeth.',
     },
     {
-      'n': 'Wisdom Tooth',
+      'n': 'Wisdom Tooth Removal',
       'i': Icons.medical_services_rounded,
       'p': '₱8K–13K',
-      'dur': '45-60 mins',
-      'desc': 'Specialized extraction of impacted wisdom teeth',
+      'dur': '60 mins',
+      'desc':
+          'Specialized surgical extraction of impacted or problematic third molars to prevent crowding and pain.',
     },
     {
-      'n': 'Dental Filling',
+      'n': 'Dental Filling (Pasta)',
       'i': Icons.build_rounded,
       'p': '₱850–1,200',
       'dur': '30 mins',
-      'desc': 'Restoration of cavities with tooth-colored composite material',
+      'desc':
+          'Restores the function of your teeth by filling cavities with durable, tooth-colored composite materials.',
     },
     {
-      'n': 'Root Canal',
-      'i': Icons.psychology_rounded,
-      'p': '₱8,000',
-      'dur': '60-90 mins',
-      'desc': 'Treatment to save an infected or damaged tooth nerve',
-    },
-    {
-      'n': 'Dentures',
+      'n': 'Dentures (Pustiso)',
       'i': Icons.face_rounded,
       'p': 'From ₱1K',
       'dur': 'Multiple sittings',
-      'desc': 'Custom-made artificial teeth replacement solutions',
+      'desc':
+          'Custom-made removable replacements for missing teeth and surrounding tissues to restore your confidence.',
     },
     {
       'n': 'Dental Bridges',
-      'i': Icons.medical_services_rounded,
+      'i': Icons.settings_input_component_rounded,
       'p': '₱1,000',
-      'dur': 'Multiple sittings',
-      'desc': 'Fixed prosthetic solution to replace missing teeth',
+      'dur': '2-3 Sessions',
+      'desc':
+          'A fixed prosthetic solution that "bridges" the gap created by one or more missing teeth.',
     },
     {
-      'n': 'Dental Crown',
+      'n': 'Dental Jacket / Crown',
       'i': Icons.workspace_premium_rounded,
       'p': '₱1,000',
-      'dur': 'Multiple sittings',
-      'desc': 'Protective cap to restore tooth strength and appearance',
+      'dur': '2 Sessions',
+      'desc':
+          'A custom-fitted cap that covers a damaged tooth to restore its original shape, size, and strength.',
     },
     {
       'n': 'Teeth Whitening',
-      'i': Icons.color_lens_rounded,
+      'i': Icons.auto_awesome_rounded,
       'p': '₱3K/sess.',
       'dur': '60 mins',
-      'desc': 'Professional teeth bleaching for a brighter, whiter smile',
+      'desc':
+          'Professional bleaching treatment designed to safely remove deep stains for a brighter, whiter smile.',
+    },
+    {
+      'n': 'Root Canal (RCT)',
+      'i': Icons.psychology_rounded,
+      'p': '₱8,000',
+      'dur': '60-90 mins',
+      'desc':
+          'An essential procedure to save a badly decayed or infected tooth by treating the nerve and pulp.',
     },
   ];
+
+  List<Map<String, dynamic>> get _upcoming =>
+      appointments.where((a) => a['status'] == 'upcoming').toList();
+  List<Map<String, dynamic>> get _completed =>
+      appointments.where((a) => a['status'] == 'completed').toList();
 
   void _addAppt(Map<String, dynamic> a) {
     setState(() => appointments.add(a));
@@ -152,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'Appointment booked!',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: primary,
+        backgroundColor: goldDark,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -194,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               patientName: widget.patientName,
               firstName: widget.firstName,
               lastName: widget.lastName,
-              onReschedule: (idx p1, newDate p2, newTime p3) {},
+              onReschedule: (idx, newDate, newTime) {},
             ),
             ProfileScreen(
               patientName: widget.patientName,
@@ -209,18 +219,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ── APP BAR ──────────────────────────────────────
   PreferredSizeWidget _appBar() => PreferredSize(
     preferredSize: const Size.fromHeight(72),
     child: SafeArea(
       child: Container(
-        color: bg.withOpacity(0.95),
+        color: bg.withOpacity(0.9),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
             CircleAvatar(
               radius: 23,
-              backgroundColor: primary,
+              backgroundColor: goldPrimary,
               child: Text(
                 '${widget.firstName[0]}${widget.lastName[0]}',
                 style: const TextStyle(
@@ -288,16 +297,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: border),
       ),
-      child: Icon(icon, color: text, size: 20),
+      child: Icon(icon, color: goldDark, size: 20),
     ),
   );
 
-  // ── HOME DASHBOARD ───────────────────────────────
   Widget _dashHome() => SingleChildScrollView(
-    padding: const EdgeInsets.only(
-      top: 100,
-      bottom: 40,
-    ), // Added slight bottom padding
+    padding: const EdgeInsets.only(top: 100, bottom: 40),
     physics: const BouncingScrollPhysics(),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,46 +311,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 24),
         _statsRow(),
         const SizedBox(height: 30),
-
         appointments.isEmpty
-            ? Container(
-                height: 200,
-                alignment: Alignment.center,
-                child: _emptyState(),
-              )
-            : Column(
-                children: [
-                  if (_upcoming.isNotEmpty)
-                    _section(
-                      'Upcoming',
-                      _upcoming,
-                      () => setState(() => _idx = 2),
-                    ),
-                  if (_completed.isNotEmpty)
-                    _section('History', _completed, () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => HistoryScreen(
-                            appointments: appointments,
-                            patientName: widget.patientName,
-                            firstName: widget.firstName,
-                            lastName: widget.lastName,
-                            isDarkMode: isDark,
-                          ),
-                        ),
-                      );
-                    }),
-                ],
-              ),
-
+            ? _emptyState()
+            : _section('Upcoming', _upcoming, () => setState(() => _idx = 2)),
         const SizedBox(height: 30),
-
-        // ── NEW: SERVICES SHOWCASE ──
         _servicesSection(),
         const SizedBox(height: 32),
-
-        // ── NEW: ORAL HEALTH TIPS CAROUSEL ──
         _tipsSection(),
       ],
     ),
@@ -355,9 +326,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     margin: const EdgeInsets.symmetric(horizontal: 20),
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      gradient: grad,
+      gradient: goldGrad,
       borderRadius: BorderRadius.circular(24),
-      boxShadow: [BoxShadow(color: primary.withOpacity(0.4), blurRadius: 20)],
+      boxShadow: [
+        BoxShadow(
+          color: goldDark.withOpacity(0.3),
+          blurRadius: 20,
+          offset: const Offset(0, 10),
+        ),
+      ],
     ),
     child: Row(
       children: [
@@ -386,7 +363,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onPressed: () => setState(() => _idx = 1),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: primary,
+                  foregroundColor: goldDark,
                   elevation: 0,
                 ),
                 child: const Text(
@@ -410,7 +387,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(width: 12),
         _stat('${_completed.length}', 'Done', Icons.check_circle),
         const SizedBox(width: 12),
-        _stat('${appointments.length}', 'Total', Icons.bar_chart),
+        _stat('${_services.length}', 'Services', Icons.stars),
       ],
     ),
   );
@@ -425,7 +402,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Column(
         children: [
-          Icon(icon, color: primary),
+          Icon(icon, color: goldPrimary),
           const SizedBox(height: 8),
           Text(
             val,
@@ -441,11 +418,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
   );
 
-  Widget _section(
-    String title,
-    List<Map<String, dynamic>> list,
-    VoidCallback onViewAll,
-  ) => Padding(
+  Widget _section(String title, List list, VoidCallback onViewAll) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,19 +438,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: onViewAll,
               child: Text(
                 'View All',
-                style: TextStyle(color: primary, fontWeight: FontWeight.bold),
+                style: TextStyle(color: goldDark, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
-        ...list.take(2).map((a) => _apptCard(a)),
-        const SizedBox(height: 10),
+        ...list.take(1).map((a) => _apptCard(a)),
       ],
     ),
   );
 
   Widget _apptCard(Map<String, dynamic> a) => Container(
-    margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: card,
@@ -487,12 +458,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     child: Row(
       children: [
         CircleAvatar(
-          backgroundColor: primary.withOpacity(0.15),
+          backgroundColor: goldLight,
           radius: 24,
-          child: Text(
-            a['time']?.split(':')[0] ?? '',
-            style: TextStyle(color: primary, fontWeight: FontWeight.bold),
-          ),
+          child: Icon(Icons.calendar_today, color: goldDark),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -518,29 +486,235 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
   );
 
-  Widget _emptyState() => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.event_busy, size: 60, color: textMuted.withOpacity(0.4)),
-      const SizedBox(height: 16),
-      Text(
-        'No Appointments Yet',
-        style: TextStyle(
-          color: text,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+  Widget _servicesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Our Services',
+                style: TextStyle(
+                  color: text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _idx = 1),
+                child: Text(
+                  'View All',
+                  style: TextStyle(
+                    color: goldDark,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        'Book your first dental service\nand keep your smile healthy!',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: textMuted, fontSize: 13),
-      ),
-    ],
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 250,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: _services.length,
+            itemBuilder: (ctx, i) {
+              final srv = _services[i];
+              return Container(
+                width: 240,
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: card,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(
+                          srv['i'] as IconData,
+                          color: goldPrimary,
+                          size: 28,
+                        ),
+                        Text(
+                          srv['dur'] as String,
+                          style: TextStyle(
+                            color: goldDark,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      srv['n'] as String,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: text,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: Text(
+                        srv['desc'] as String,
+                        style: TextStyle(
+                          color: textMuted,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      srv['p'] as String,
+                      style: TextStyle(
+                        color: goldDark,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tipsSection() {
+    final tips = [
+      {
+        't': 'The 2-Minute Rule',
+        'd':
+            'Brush for at least 2 minutes twice a day to ensure you reach all surfaces and remove harmful plaque.',
+        'i': Icons.timer_outlined,
+      },
+      {
+        't': 'Hydrate for Health',
+        'd':
+            'Drinking water after meals helps wash away food debris and keeps your saliva levels healthy for enamel protection.',
+        'i': Icons.water_drop_rounded,
+      },
+      {
+        't': 'Gentle is Better',
+        'd':
+            'Use a soft-bristled brush and gentle circular motions. Brushing too hard can wear down enamel and hurt your gums.',
+        'i': Icons.brush_rounded,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Dental Care Tips',
+            style: TextStyle(
+              color: text,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Column(
+          children: tips
+              .map(
+                (tip) => Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: goldPrimary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: goldLight.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.white,
+                        child: Icon(
+                          tip['i'] as IconData,
+                          color: goldDark,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tip['t'] as String,
+                              style: TextStyle(
+                                color: text,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              tip['d'] as String,
+                              style: TextStyle(
+                                color: textMuted,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _emptyState() => Center(
+    child: Column(
+      children: [
+        Icon(Icons.event_note, size: 60, color: goldLight),
+        const SizedBox(height: 10),
+        Text(
+          'No Appointments Yet',
+          style: TextStyle(color: text, fontWeight: FontWeight.bold),
+        ),
+      ],
+    ),
   );
 
-  // ── FOOTER NAVIGATION ────────────────────────────
   Widget _buildBottomNav() => Container(
     margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
     decoration: BoxDecoration(
@@ -555,7 +729,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         currentIndex: _idx,
         onTap: (i) => setState(() => _idx = i),
         backgroundColor: card,
-        selectedItemColor: primary,
+        selectedItemColor: goldDark,
         unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
@@ -584,275 +758,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ),
   );
-  Widget _tipsSection() {
-    final tips = [
-      {
-        't': 'Floss Every Day',
-        'd':
-            'Flossing removes plaque below the gumline where a toothbrush simply cannot reach.',
-        'i': Icons.cleaning_services_rounded,
-      },
-      {
-        't': 'Change Your Brush',
-        'd':
-            'Replace your toothbrush every 3-4 months, or sooner if the bristles are visibly frayed.',
-        'i': Icons.brush_rounded,
-      },
-      {
-        't': 'Limit Sugary Snacks',
-        'd':
-            'Sugar converts into acid in the mouth, which can rapidly erode the enamel of your teeth.',
-        'i': Icons.fastfood_rounded,
-      },
-      {
-        't': "Don't Brush Too Hard",
-        'd':
-            'Brushing aggressively can permanently damage your gums and wear down enamel.',
-        'i': Icons.front_hand_rounded,
-      },
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            'Daily Dental Tips',
-            style: TextStyle(
-              color: text,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 170,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: tips.length,
-            itemBuilder: (ctx, i) {
-              final t = tips[i];
-              return Container(
-                width: 250,
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: card,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primary.withOpacity(0.04),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(t['i'] as IconData, color: primary, size: 24),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      t['t'] as String,
-                      style: TextStyle(
-                        color: text,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: Text(
-                        t['d'] as String,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: textMuted,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _servicesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Our Services',
-                style: TextStyle(
-                  color: text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              TextButton(
-                onPressed: () => setState(() => _idx = 1),
-                child: Text(
-                  'View All',
-                  style: TextStyle(
-                    color: primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 240,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: _services.length,
-            itemBuilder: (ctx, i) {
-              final srv = _services[i];
-              return Container(
-                width: 220,
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: card,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primary.withOpacity(0.04),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Icon Container
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        srv['i'] as IconData,
-                        color: primary,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Service Name
-                    Text(
-                      srv['n'] as String,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: text,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Duration
-                    Row(
-                      children: [
-                        Icon(Icons.schedule_rounded, color: primary, size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          srv['dur'] as String,
-                          style: TextStyle(
-                            color: textMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Description (truncated)
-                    Expanded(
-                      child: Text(
-                        srv['desc'] as String,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: textMuted,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Price
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        srv['p'] as String,
-                        style: TextStyle(
-                          color: primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── DRAWER ───────────────────────────────────────
   Widget _drawer() => Drawer(
     backgroundColor: card,
     child: ListView(
       padding: EdgeInsets.zero,
       children: [
         DrawerHeader(
-          decoration: BoxDecoration(gradient: grad),
+          decoration: BoxDecoration(gradient: goldGrad),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.end,
@@ -862,9 +775,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Text(
                   widget.firstName[0],
                   style: TextStyle(
-                    color: primary,
+                    color: goldDark,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
                   ),
                 ),
               ),
@@ -880,48 +792,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        ListTile(
-          leading: Icon(Icons.info, color: text),
-          title: Text('About Clinic', style: TextStyle(color: text)),
-          onTap: () {
-            Navigator.pop(context); // Closes the drawer instantly
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AboutClinicScreen(isDarkMode: isDark),
-              ),
-            ); // Smoothly slides open your new premium clinic screen!
-          },
+        _drawerItem(
+          Icons.info,
+          'About Clinic',
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AboutClinicScreen(isDarkMode: isDark),
+            ),
+          ),
         ),
-        ListTile(
-          leading: Icon(Icons.history, color: text),
-          title: Text('History', style: TextStyle(color: text)),
-          onTap: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => HistoryScreen(
-                  appointments: appointments,
-                  patientName: widget.patientName,
-                  firstName: widget.firstName,
-                  isDarkMode: isDark,
-                  lastName: widget.lastName,
-                ),
+        _drawerItem(
+          Icons.history,
+          'History',
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HistoryScreen(
+                appointments: appointments,
+                patientName: widget.patientName,
+                firstName: widget.firstName,
+                isDarkMode: isDark,
+                lastName: widget.lastName,
               ),
-            );
-          },
+            ),
+          ),
         ),
         const Divider(),
-        ListTile(
-          leading: const Icon(Icons.logout, color: Colors.red),
-          title: const Text('Logout', style: TextStyle(color: Colors.red)),
-          onTap: () {
-            Navigator.pop(context);
-            Navigator.pushReplacementNamed(context, '/');
-          },
+        _drawerItem(
+          Icons.logout,
+          'Logout',
+          () => Navigator.pushReplacementNamed(context, '/'),
+          color: Colors.red,
         ),
       ],
     ),
+  );
+
+  Widget _drawerItem(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    Color? color,
+  }) => ListTile(
+    leading: Icon(icon, color: color ?? goldDark),
+    title: Text(title, style: TextStyle(color: color ?? text)),
+    onTap: onTap,
   );
 }
