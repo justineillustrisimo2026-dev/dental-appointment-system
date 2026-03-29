@@ -26,18 +26,22 @@ class _LoginScreenState extends State<LoginScreen>
   bool isLoading = false, obscure = true;
   late AnimationController _animController;
 
-  // ── ☀️ WEB-MATCHED LUXURY THEME ──
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
-  Color get bg =>
-      isDark ? const Color(0xFF0F172A) : Colors.white; // Pure White Background
+  Color get bg => isDark ? const Color(0xFF0F172A) : Colors.white;
   Color get textDark => const Color(0xFF1E293B);
   Color get textMuted => const Color(0xFF64748B);
 
-  // SIGNATURE GOLD COLORS
+  // ── ✨ REFINED RADIANT GOLD PALETTE ──
   final Color goldPrimary = const Color(0xFFB59410);
-  final Color goldLight = const Color(0xFFFCF6BA);
-  final Color goldDark = const Color(0xFFBF953F);
+  final Color goldDeep = const Color(0xFFB88A44); // Shadow/Edges
+  final Color goldMid = const Color(0xFFD4AF37); // Base Gold
+  final Color goldShine = const Color.fromARGB(
+    255,
+    241,
+    225,
+    156,
+  ); // The Radiant Shine
 
   @override
   void initState() {
@@ -113,13 +117,11 @@ class _LoginScreenState extends State<LoginScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ── 1. THE LOGO (PLACED ON THE WHITE BACKGROUND) ──
-                  // ── 1. THE LOGO ONLY (NO FALLBACK ICON) ──s
+                  // LOGO
                   Image.asset(
                     'assets/clinic_logo.png',
                     width: 140,
                     fit: BoxFit.contain,
-                    // errorBuilder is removed so the medical icon never appears
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -133,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                   const SizedBox(height: 40),
 
-                  // ── 2. YOUR GRADIENT GOLD BOX STARTS HERE ──
+                  // ── 🟡 RADIANT GOLD CONTAINER ──
                   Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
@@ -141,16 +143,18 @@ class _LoginScreenState extends State<LoginScreen>
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          goldPrimary, // The main, rich gold
-                          goldDark, // The deep, metallic gold
+                          goldDeep, // Corner
+                          goldMid, // Transition
+                          goldShine, // Center Shine (Radiant)
+                          goldMid, // Transition
+                          goldDeep, // Corner
                         ],
-                        // No stops needed for a smooth, natural blend
+                        stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
                       ),
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          // Using a gold-tinted shadow makes the box look like it belongs
-                          color: goldDark.withOpacity(0.3),
+                          color: goldDeep.withOpacity(0.4),
                           blurRadius: 25,
                           offset: const Offset(0, 10),
                         ),
@@ -186,7 +190,6 @@ class _LoginScreenState extends State<LoginScreen>
 
                         const SizedBox(height: 30),
 
-                        // ── 3. WHITE BUTTON (Contrasts against Gold Box) ──
                         GestureDetector(
                           onTap: isLoading ? null : _login,
                           child: Container(

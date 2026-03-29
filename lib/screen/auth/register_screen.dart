@@ -19,10 +19,17 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool isLoading = false, obscure = true;
   late AnimationController _animController;
 
-  // ── ✨ LUXURY GOLD THEME COLORS ──
-  final Color goldPrimary = const Color(0xFFD4AF37); // Metallic Gold
-  final Color goldDark = const Color(0xFFA67C00); // Deep Gold
-  final Color goldLight = const Color(0xFFF9E4B7); // Champagne Gold
+  // ── ✨ RADIANT GOLD COLORS (Matching your Image) ──
+  final Color goldDeep = const Color(0xFFB88A44); // The darker "bronze" edges
+  final Color goldMid = const Color(0xFFD4AF37); // The classic gold transition
+  final Color goldShine = const Color.fromARGB(
+    255,
+    241,
+    225,
+    156,
+  ); // The Radiant Shine
+  // The bright "radiant" center
+  final Color goldPrimary = const Color(0xFFB59410);
 
   Color get bg => Colors.white;
   Color get text => const Color(0xFF1E293B);
@@ -56,19 +63,10 @@ class _RegisterScreenState extends State<RegisterScreen>
         c5.text.isEmpty) {
       return _showMsg('Please fill all fields', Colors.redAccent);
     }
-    if (c4.text.length < 6) {
-      return _showMsg(
-        'Password must be at least 6 characters',
-        Colors.redAccent,
-      );
-    }
-
     setState(() => isLoading = true);
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() => isLoading = false);
-      _showMsg('Account created! Please login.', goldDark);
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -86,19 +84,9 @@ class _RegisterScreenState extends State<RegisterScreen>
   void _showMsg(String msg, Color color) =>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            msg,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
+          content: Text(msg),
           backgroundColor: color,
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
         ),
       );
 
@@ -111,127 +99,102 @@ class _RegisterScreenState extends State<RegisterScreen>
           opacity: _animController,
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-            physics: const BouncingScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── ✨ TOP LOGO & BRANDING ──
                 Center(
-                  child: Column(
-                    children: [
-                      Image.asset(
-                        'assets/clinic_logo.png',
-                        width: 140, // Elegant size for the register header
-                        fit: BoxFit.contain,
-                      ),
-                    ],
-                  ),
+                  child: Image.asset('assets/clinic_logo.png', width: 120),
                 ),
-                const SizedBox(height: 30),
-
-                // ── ✨ TOP LOGO & BRANDING ──
-                // (This part is around line 130 of your code)
+                const SizedBox(height: 20),
                 Text(
                   'Create Account',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 28,
                     fontWeight: FontWeight.w900,
-                    color:
-                        goldDark, // <-- CHANGE THIS FROM 'text' TO 'goldDark'
-                    letterSpacing: -0.5,
+                    color: goldPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Join our dental family securely',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color:
-                        goldDark, // <-- CHANGE THIS FROM 'textMuted' TO 'goldDark'
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 25),
 
-                // ── 🏆 GOLD REGISTRATION CARD ──
+                // ── 🟡 UPDATED RADIANT GRADIENT CONTAINER ──
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
+                    // THIS IS THE GRADIENT LOGIC FROM THE IMAGE
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [goldPrimary, goldDark], // Matches your Login box
+                      colors: [
+                        goldDeep, // Start dark
+                        goldMid, // Move to gold
+                        goldShine, // THE RADIANT SHINE (Center)
+                        goldMid, // Back to gold
+                        goldDeep, // End dark
+                      ],
+                      stops: const [
+                        0.0,
+                        0.25,
+                        0.5,
+                        0.75,
+                        1.0,
+                      ], // Controls the "spread"
                     ),
-                    borderRadius: BorderRadius.circular(36),
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: goldDark.withOpacity(0.3),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
+                        color: goldDeep.withOpacity(0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: Column(
                     children: [
                       _inputField(c1, Icons.badge_rounded, 'First Name', false),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 15),
                       _inputField(c2, Icons.badge_outlined, 'Last Name', false),
-                      const SizedBox(height: 16),
-                      _inputField(
-                        c3,
-                        Icons.alternate_email_rounded,
-                        'Username',
-                        false,
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 15),
+                      _inputField(c3, Icons.person_outline, 'Username', false),
+                      const SizedBox(height: 15),
                       _inputField(
                         c5,
-                        Icons.phone_rounded,
+                        Icons.phone_android_rounded,
                         'Contact No.',
                         false,
                         TextInputType.phone,
                       ),
-                      const SizedBox(height: 16),
-                      _inputField(c4, Icons.lock_rounded, 'Password', true),
+                      const SizedBox(height: 15),
+                      _inputField(
+                        c4,
+                        Icons.lock_outline_rounded,
+                        'Password',
+                        true,
+                      ),
+                      const SizedBox(height: 30),
 
-                      const SizedBox(height: 32),
-
-                      // ── ✨ SIGN UP BUTTON (Premium White on Gold) ──
+                      // SIGN UP BUTTON
                       GestureDetector(
                         onTap: isLoading ? null : _register,
                         child: Container(
                           width: double.infinity,
-                          height: 56,
+                          height: 55,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black12, blurRadius: 10),
                             ],
                           ),
                           child: Center(
                             child: isLoading
-                                ? SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: goldDark,
-                                      strokeWidth: 3,
-                                    ),
-                                  )
+                                ? CircularProgressIndicator(color: goldPrimary)
                                 : Text(
                                     'SIGN UP',
                                     style: TextStyle(
-                                      color: goldDark,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1.5,
+                                      color: goldPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
                                     ),
                                   ),
                           ),
@@ -240,19 +203,13 @@ class _RegisterScreenState extends State<RegisterScreen>
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // ── 🔗 BACK TO LOGIN ──
+                const SizedBox(height: 25),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       "Already have an account? ",
-                      style: TextStyle(
-                        color: textMuted,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(color: textMuted),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pushReplacement(
@@ -262,16 +219,13 @@ class _RegisterScreenState extends State<RegisterScreen>
                       child: Text(
                         'Login',
                         style: TextStyle(
-                          color: goldDark,
+                          color: goldPrimary,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -280,7 +234,6 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  // ── 🎨 CUSTOM INPUT FIELD HELPER (Styled for Gold Card) ──
   Widget _inputField(
     TextEditingController ctrl,
     IconData icon,
@@ -289,33 +242,25 @@ class _RegisterScreenState extends State<RegisterScreen>
     TextInputType kType = TextInputType.text,
   ]) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white, // Pure white for high contrast inside the gold box
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
         controller: ctrl,
         obscureText: isPass ? obscure : false,
         keyboardType: kType,
-        style: TextStyle(
-          color: text,
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
         decoration: InputDecoration(
-          icon: Icon(icon, color: goldDark, size: 22),
+          prefixIcon: Icon(icon, color: goldPrimary, size: 20),
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: TextStyle(color: textMuted, fontWeight: FontWeight.normal),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
           suffixIcon: isPass
               ? IconButton(
                   icon: Icon(
-                    obscure
-                        ? Icons.visibility_off_rounded
-                        : Icons.visibility_rounded,
-                    color: textMuted,
-                    size: 20,
+                    obscure ? Icons.visibility_off : Icons.visibility,
+                    color: goldPrimary,
+                    size: 18,
                   ),
                   onPressed: () => setState(() => obscure = !obscure),
                 )

@@ -26,7 +26,6 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
     }
   }
 
-  // ── ✨ LUXURY GOLD THEME COLORS ──
   final Color goldPrimary = const Color(0xFFD4AF37);
   final Color goldDark = const Color(0xFFA67C00);
   final Color goldLight = const Color(0xFFF9E4B7);
@@ -83,7 +82,6 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
               ),
               child: Column(
                 children: [
-                  // ✨ PREMIUM WHITE BADGE ✨
                   Container(
                     width: 110,
                     height: 110,
@@ -155,7 +153,7 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
 
             const SizedBox(height: 36),
 
-            // ── 📄 CLINIC OVERVIEW ──
+            // ── CLINIC OVERVIEW ──
             _sectionHeader('About Us'),
             const SizedBox(height: 12),
             Container(
@@ -178,7 +176,7 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
 
             const SizedBox(height: 32),
 
-            // ── 📍 CONTACT DETAILS ──
+            // ── CONTACT DETAILS ──
             _sectionHeader('Contact Information'),
             const SizedBox(height: 12),
             _infoCard(
@@ -197,7 +195,7 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
 
             const SizedBox(height: 32),
 
-            // ── ⏰ OPERATING HOURS ──
+            // ── OPERATING HOURS ──
             _sectionHeader('Operating Hours'),
             const SizedBox(height: 12),
             Container(
@@ -243,7 +241,7 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
 
             const SizedBox(height: 32),
 
-            // ── 👨‍⚕️ SPECIALISTS ──
+            // ──  DOCTORS──
             _sectionHeader('Meet Our Specialists'),
             const SizedBox(height: 12),
             _docCard('Dr. Justine Illustrisimo', 'Lead Orthodontist'),
