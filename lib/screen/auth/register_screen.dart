@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -10,38 +12,35 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen>
     with TickerProviderStateMixin {
-  final c1 = TextEditingController(),
-      c2 = TextEditingController(),
-      c3 = TextEditingController(),
-      c4 = TextEditingController(),
-      c5 = TextEditingController();
+  final c1 = TextEditingController(); // First Name
+  final c2 = TextEditingController(); // Last Name
+  final c3 = TextEditingController(); // Username
+  final c4 = TextEditingController(); // Password
+  final c5 = TextEditingController(); // Contact
 
   bool isLoading = false, obscure = true;
-  late AnimationController _animController;
+  late AnimationController _mainController;
+  late Animation<Offset> _slideAnim;
+  late Animation<double> _fadeAnim;
 
-  // ── ✨ RADIANT GOLD COLORS (Matching your Image) ──
-  final Color goldDeep = const Color(0xFFB88A44); // The darker "bronze" edges
-  final Color goldMid = const Color(0xFFD4AF37); // The classic gold transition
-  final Color goldShine = const Color.fromARGB(
-    255,
-    241,
-    225,
-    156,
-  ); // The Radiant Shine
-  // The bright "radiant" center
+  final Color goldDeep = const Color(0xFFB88A44);
+  final Color goldMid = const Color(0xFFD4AF37);
+  final Color goldShine = const Color.fromARGB(255, 240, 216, 108);
   final Color goldPrimary = const Color(0xFFB59410);
-
-  Color get bg => Colors.white;
-  Color get text => const Color(0xFF1E293B);
-  Color get textMuted => const Color(0xFF64748B);
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
+    _mainController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..forward();
+      duration: const Duration(milliseconds: 1000),
+    );
+    _fadeAnim = CurvedAnimation(parent: _mainController, curve: Curves.easeIn);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _mainController, curve: Curves.fastOutSlowIn),
+        );
+    _mainController.forward();
   }
 
   @override
@@ -51,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     c3.dispose();
     c4.dispose();
     c5.dispose();
-    _animController.dispose();
+    _mainController.dispose();
     super.dispose();
   }
 
@@ -61,12 +60,19 @@ class _RegisterScreenState extends State<RegisterScreen>
         c3.text.isEmpty ||
         c4.text.isEmpty ||
         c5.text.isEmpty) {
-      return _showMsg('Please fill all fields', Colors.redAccent);
+      _showMsg('Please fill all fields', Colors.redAccent);
+      return;
     }
+    if (c5.text.length != 11) {
+      _showMsg('Contact must be 11 digits', Colors.redAccent);
+      return;
+    }
+
     setState(() => isLoading = true);
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() => isLoading = false);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -81,150 +87,208 @@ class _RegisterScreenState extends State<RegisterScreen>
     });
   }
 
-  void _showMsg(String msg, Color color) =>
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor: color,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  void _showMsg(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Colors.white, // ✨ Background changed to White
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _animController,
+        child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Image.asset('assets/clinic_logo.png', width: 120),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Create Account',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: goldPrimary,
-                  ),
-                ),
-                const SizedBox(height: 25),
-
-                // ── 🟡 UPDATED RADIANT GRADIENT CONTAINER ──
+                // ⚪ WHITE LOGO ORB
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  height: 100,
+                  width: 100,
+                  padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    // THIS IS THE GRADIENT LOGIC FROM THE IMAGE
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        goldDeep, // Start dark
-                        goldMid, // Move to gold
-                        goldShine, // THE RADIANT SHINE (Center)
-                        goldMid, // Back to gold
-                        goldDeep, // End dark
-                      ],
-                      stops: const [
-                        0.0,
-                        0.25,
-                        0.5,
-                        0.75,
-                        1.0,
-                      ], // Controls the "spread"
-                    ),
-                    borderRadius: BorderRadius.circular(30),
+                    color: Colors.white,
+                    shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: goldDeep.withOpacity(0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                        color: goldDeep.withOpacity(0.2),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      _inputField(c1, Icons.badge_rounded, 'First Name', false),
-                      const SizedBox(height: 15),
-                      _inputField(c2, Icons.badge_outlined, 'Last Name', false),
-                      const SizedBox(height: 15),
-                      _inputField(c3, Icons.person_outline, 'Username', false),
-                      const SizedBox(height: 15),
-                      _inputField(
-                        c5,
-                        Icons.phone_android_rounded,
-                        'Contact No.',
-                        false,
-                        TextInputType.phone,
-                      ),
-                      const SizedBox(height: 15),
-                      _inputField(
-                        c4,
-                        Icons.lock_outline_rounded,
-                        'Password',
-                        true,
-                      ),
-                      const SizedBox(height: 30),
-
-                      // SIGN UP BUTTON
-                      GestureDetector(
-                        onTap: isLoading ? null : _register,
-                        child: Container(
-                          width: double.infinity,
-                          height: 55,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black12, blurRadius: 10),
-                            ],
-                          ),
-                          child: Center(
-                            child: isLoading
-                                ? CircularProgressIndicator(color: goldPrimary)
-                                : Text(
-                                    'SIGN UP',
-                                    style: TextStyle(
-                                      color: goldPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Image.asset(
+                    'assets/clinic_logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  'SMILE ART',
+                  style: GoogleFonts.cinzel(
+                    color: goldPrimary, // ✨ Gold text for White background
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 8,
                   ),
                 ),
                 const SizedBox(height: 25),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Already have an account? ",
-                      style: TextStyle(color: textMuted),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      ),
-                      child: Text(
-                        'Login',
-                        style: TextStyle(
-                          color: goldPrimary,
-                          fontWeight: FontWeight.bold,
+
+                // ⬜ GRADIENT GOLD REGISTER CARD
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
+                    child: Container(
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        // ✨ Background changed to Gradient Gold
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            goldDeep,
+                            goldMid,
+                            goldShine,
+                            goldMid,
+                            goldDeep,
+                          ],
+                          stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
                         ),
+                        borderRadius: BorderRadius.circular(35),
+                        boxShadow: [
+                          BoxShadow(
+                            color: goldDeep.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Create Account',
+                            style: GoogleFonts.montserrat(
+                              color: Colors
+                                  .white, // ✨ White text for Gold background
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildInput(
+                            c1,
+                            Icons.badge_rounded,
+                            'First Name',
+                            false,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInput(
+                            c2,
+                            Icons.badge_outlined,
+                            'Last Name',
+                            false,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInput(
+                            c3,
+                            Icons.person_outline,
+                            'Username',
+                            false,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInput(
+                            c5,
+                            Icons.phone_android_rounded,
+                            'Contact No.',
+                            false,
+                            TextInputType.phone,
+                            [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(11),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInput(
+                            c4,
+                            Icons.lock_outline_rounded,
+                            'Password',
+                            true,
+                          ),
+                          const SizedBox(height: 25),
+
+                          // 🔘 WHITE BUTTON
+                          GestureDetector(
+                            onTap: isLoading ? null : _register,
+                            child: Container(
+                              width: double.infinity,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                color:
+                                    Colors.white, // ✨ White button for contrast
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: isLoading
+                                    ? CircularProgressIndicator(
+                                        color: goldPrimary,
+                                      )
+                                    : Text(
+                                        'CREATE ACCOUNT',
+                                        style: GoogleFonts.montserrat(
+                                          color:
+                                              goldPrimary, // ✨ Gold text for White button
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                ),
+                const SizedBox(height: 25),
+                GestureDetector(
+                  onTap: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ),
+                  child: RichText(
+                    text: TextSpan(
+                      text: "Already a patient? ",
+                      style: GoogleFonts.montserrat(
+                        color: Colors.blueGrey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: "Login",
+                          style: TextStyle(
+                            color: goldPrimary,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -234,32 +298,40 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  Widget _inputField(
+  Widget _buildInput(
     TextEditingController ctrl,
     IconData icon,
     String hint,
     bool isPass, [
     TextInputType kType = TextInputType.text,
+    List<TextInputFormatter>? formatters,
   ]) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white, // ✨ White inputs for Gold card
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
         controller: ctrl,
         obscureText: isPass ? obscure : false,
         keyboardType: kType,
+        inputFormatters: formatters,
+        style: GoogleFonts.montserrat(
+          color: const Color(0xFF1E293B),
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: goldPrimary, size: 20),
-          border: InputBorder.none,
           hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
           suffixIcon: isPass
               ? IconButton(
                   icon: Icon(
                     obscure ? Icons.visibility_off : Icons.visibility,
-                    color: goldPrimary,
+                    color: Colors.blueGrey,
                     size: 18,
                   ),
                   onPressed: () => setState(() => obscure = !obscure),

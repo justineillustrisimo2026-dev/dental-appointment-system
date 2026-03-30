@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 class CalendarScreen extends StatefulWidget {
   final List<Map<String, dynamic>> appointments;
   final String patientName, firstName, lastName;
+  final void Function(dynamic idx, dynamic newDate, dynamic newTime)
+  onReschedule;
+
   const CalendarScreen({
     super.key,
     required this.appointments,
     required this.patientName,
     required this.firstName,
     required this.lastName,
-    required void Function(dynamic idx, dynamic newDate, dynamic newTime)
-    onReschedule,
+    required this.onReschedule,
   });
 
   @override
@@ -583,6 +585,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                             a['date'] = d;
                             a['time'] = t;
                           });
+                          widget.onReschedule(null, null, null); // Refresh Home
                           Navigator.pop(ctx);
                         }
                       : null,
@@ -723,6 +726,7 @@ class _CalendarScreenState extends State<CalendarScreen>
         ElevatedButton(
           onPressed: () {
             setState(() => a['status'] = 'cancelled');
+            widget.onReschedule(null, null, null); // Refresh Home
             Navigator.pop(context);
           },
           style: ElevatedButton.styleFrom(backgroundColor: danger),

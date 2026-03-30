@@ -15,6 +15,7 @@ dependencies:
   image_picker: ^1.2.1
   mobile_scanner: ^5.1.1 # Moved here from the bottom
   intl: ^0.20.2
+  google_fonts: ^8.0.2
 
 dev_dependencies:
   flutter_test:

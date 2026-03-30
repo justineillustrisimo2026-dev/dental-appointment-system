@@ -49,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     colors: [goldPrimary, goldDark],
   );
 
-  // ── 🏥 UPDATED SERVICES LIST ──
+  // ── 🏥 FULL SERVICES LIST ──
   final List<Map<String, dynamic>> _services = [
     {
       'n': 'Braces & Adjustments',
@@ -151,8 +151,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Map<String, dynamic>> get _upcoming =>
       appointments.where((a) => a['status'] == 'upcoming').toList();
-  List<Map<String, dynamic>> get _completed =>
-      appointments.where((a) => a['status'] == 'completed').toList();
 
   void _addAppt(Map<String, dynamic> a) {
     setState(() => appointments.add(a));
@@ -170,13 +168,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      ),
-    );
-
     return Theme(
       data: ThemeData(brightness: isDark ? Brightness.dark : Brightness.light),
       child: Scaffold(
@@ -185,6 +176,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         extendBodyBehindAppBar: true,
         appBar: _appBar(),
         endDrawer: _drawer(),
+
+        // ── ➕ PLUS BUTTON (Lower Right, Home Tab Only) ──
+        floatingActionButton: _idx == 0
+            ? FloatingActionButton(
+                onPressed: () => setState(() => _idx = 1),
+                backgroundColor: goldDark,
+                child: const Icon(Icons.add, color: Colors.white),
+              )
+            : null,
+
         body: IndexedStack(
           index: _idx,
           children: [
@@ -204,7 +205,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               patientName: widget.patientName,
               firstName: widget.firstName,
               lastName: widget.lastName,
-              onReschedule: (idx, newDate, newTime) {},
+              onReschedule: (idx, newDate, newTime) {
+                setState(() {});
+              }, // Ensures Home updates when calendar cancels
             ),
             ProfileScreen(
               patientName: widget.patientName,
@@ -223,7 +226,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     preferredSize: const Size.fromHeight(72),
     child: SafeArea(
       child: Container(
-        color: bg.withOpacity(0.9),
+        color: bg.withOpacity(0.95), // Solid background for scrolling
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
@@ -259,11 +262,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-            _iconBtn(
-              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              () => setState(() => isDark = !isDark),
-            ),
-            const SizedBox(width: 8),
             _iconBtn(
               Icons.qr_code_scanner,
               () => Navigator.push(
@@ -311,13 +309,275 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 24),
         _statsRow(),
         const SizedBox(height: 30),
+
+        // ── 📅 HOME APPOINTMENTS LOGIC ──
+        // This automatically shows "No Appointments Yet" if list is empty
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Upcoming',
+            style: TextStyle(
+              color: text,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         appointments.isEmpty
             ? _emptyState()
-            : _section('Upcoming', _upcoming, () => setState(() => _idx = 2)),
+            : Column(children: _upcoming.map((a) => _apptCard(a)).toList()),
+
         const SizedBox(height: 30),
         _servicesSection(),
         const SizedBox(height: 32),
         _tipsSection(),
+      ],
+    ),
+  );
+
+  Widget _servicesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Our Services',
+            style: TextStyle(
+              color: text,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 300, // Full description height
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: _services.length,
+            itemBuilder: (ctx, i) {
+              final srv = _services[i];
+              return Container(
+                width: 260,
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: card,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(
+                          srv['i'] as IconData,
+                          color: goldPrimary,
+                          size: 28,
+                        ),
+                        Text(
+                          srv['dur'] as String,
+                          style: TextStyle(
+                            color: goldDark,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      srv['n'] as String,
+                      style: TextStyle(
+                        color: text,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // ✨ DESCRIPTION FULLY SHOWN
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          srv['desc'] as String,
+                          style: TextStyle(
+                            color: textMuted,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      srv['p'] as String,
+                      style: TextStyle(
+                        color: goldDark,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _apptCard(Map<String, dynamic> a) => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: card,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: border),
+    ),
+    child: Row(
+      children: [
+        CircleAvatar(
+          backgroundColor: goldLight,
+          radius: 24,
+          child: Icon(Icons.calendar_today, color: goldDark),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                a['service'] ?? '',
+                style: TextStyle(
+                  color: text,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+              Text(
+                a['doctor'] ?? 'Confirmed Appointment',
+                style: TextStyle(color: textMuted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _emptyState() => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20),
+    padding: const EdgeInsets.all(40),
+    decoration: BoxDecoration(
+      color: card,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: border),
+    ),
+    child: Center(
+      child: Column(
+        children: [
+          Icon(Icons.event_note, size: 60, color: goldLight),
+          const SizedBox(height: 10),
+          Text(
+            'No Appointments Yet',
+            style: TextStyle(color: text, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _drawer() => Drawer(
+    backgroundColor: card,
+    child: Column(
+      children: [
+        DrawerHeader(
+          decoration: BoxDecoration(gradient: goldGrad),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    widget.firstName[0],
+                    style: TextStyle(
+                      color: goldDark,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '${widget.firstName} ${widget.lastName}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // ── 🌓 DARK MODE INSIDE BURGER ──
+        ListTile(
+          leading: Icon(
+            isDark ? Icons.light_mode : Icons.dark_mode,
+            color: goldDark,
+          ),
+          title: Text(
+            isDark ? 'Light Mode' : 'Dark Mode',
+            style: TextStyle(color: text),
+          ),
+          trailing: Switch(
+            value: isDark,
+            activeColor: goldPrimary,
+            onChanged: (v) => setState(() => isDark = v),
+          ),
+        ),
+        const Divider(),
+        _drawerItem(
+          Icons.info,
+          'About Clinic',
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AboutClinicScreen(isDarkMode: isDark),
+            ),
+          ),
+        ),
+        _drawerItem(
+          Icons.history,
+          'History',
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HistoryScreen(
+                appointments: appointments,
+                patientName: widget.patientName,
+                firstName: widget.firstName,
+                isDarkMode: isDark,
+                lastName: widget.lastName,
+              ),
+            ),
+          ),
+        ),
+        const Spacer(),
+        _drawerItem(
+          Icons.logout,
+          'Logout',
+          () => Navigator.pushReplacementNamed(context, '/'),
+          color: Colors.red,
+        ),
+        const SizedBox(height: 20),
       ],
     ),
   );
@@ -364,7 +624,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: goldDark,
-                  elevation: 0,
                 ),
                 child: const Text(
                   'Book Now',
@@ -385,7 +644,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         _stat('${_upcoming.length}', 'Upcoming', Icons.upcoming),
         const SizedBox(width: 12),
-        _stat('${_completed.length}', 'Done', Icons.check_circle),
+        _stat(
+          '${appointments.length - _upcoming.length}',
+          'Done',
+          Icons.check_circle,
+        ),
         const SizedBox(width: 12),
         _stat('${_services.length}', 'Services', Icons.stars),
       ],
@@ -418,215 +681,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
   );
 
-  Widget _section(String title, List list, VoidCallback onViewAll) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: text,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton(
-              onPressed: onViewAll,
-              child: Text(
-                'View All',
-                style: TextStyle(color: goldDark, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        ...list.take(1).map((a) => _apptCard(a)),
-      ],
-    ),
-  );
-
-  Widget _apptCard(Map<String, dynamic> a) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: card,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: border),
-    ),
-    child: Row(
-      children: [
-        CircleAvatar(
-          backgroundColor: goldLight,
-          radius: 24,
-          child: Icon(Icons.calendar_today, color: goldDark),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                a['service'] ?? '',
-                style: TextStyle(
-                  color: text,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
-              Text(
-                a['doctor'] ?? '',
-                style: TextStyle(color: textMuted, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _servicesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Our Services',
-                style: TextStyle(
-                  color: text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              TextButton(
-                onPressed: () => setState(() => _idx = 1),
-                child: Text(
-                  'View All',
-                  style: TextStyle(
-                    color: goldDark,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 250,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: _services.length,
-            itemBuilder: (ctx, i) {
-              final srv = _services[i];
-              return Container(
-                width: 240,
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: card,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Icon(
-                          srv['i'] as IconData,
-                          color: goldPrimary,
-                          size: 28,
-                        ),
-                        Text(
-                          srv['dur'] as String,
-                          style: TextStyle(
-                            color: goldDark,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      srv['n'] as String,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: text,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: Text(
-                        srv['desc'] as String,
-                        style: TextStyle(
-                          color: textMuted,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      srv['p'] as String,
-                      style: TextStyle(
-                        color: goldDark,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _tipsSection() {
     final tips = [
       {
         't': 'The 2-Minute Rule',
         'd':
             'Brush for at least 2 minutes twice a day to ensure you reach all surfaces and remove harmful plaque.',
-        'i': Icons.timer_outlined,
       },
       {
         't': 'Hydrate for Health',
         'd':
-            'Drinking water after meals helps wash away food debris and keeps your saliva levels healthy for enamel protection.',
-        'i': Icons.water_drop_rounded,
+            'Drinking water after meals helps wash away food debris and keeps your saliva levels healthy.',
       },
       {
         't': 'Gentle is Better',
         'd':
-            'Use a soft-bristled brush and gentle circular motions. Brushing too hard can wear down enamel and hurt your gums.',
-        'i': Icons.brush_rounded,
+            'Use a soft-bristled brush and gentle circular motions. Brushing too hard can wear down enamel.',
       },
     ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -661,11 +733,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       CircleAvatar(
                         backgroundColor: Colors.white,
-                        child: Icon(
-                          tip['i'] as IconData,
-                          color: goldDark,
-                          size: 20,
-                        ),
+                        child: Icon(Icons.lightbulb, color: goldDark, size: 20),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -673,7 +741,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              tip['t'] as String,
+                              tip['t']!,
                               style: TextStyle(
                                 color: text,
                                 fontWeight: FontWeight.bold,
@@ -682,7 +750,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              tip['d'] as String,
+                              tip['d']!,
                               style: TextStyle(
                                 color: textMuted,
                                 fontSize: 13,
@@ -701,19 +769,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
     );
   }
-
-  Widget _emptyState() => Center(
-    child: Column(
-      children: [
-        Icon(Icons.event_note, size: 60, color: goldLight),
-        const SizedBox(height: 10),
-        Text(
-          'No Appointments Yet',
-          style: TextStyle(color: text, fontWeight: FontWeight.bold),
-        ),
-      ],
-    ),
-  );
 
   Widget _buildBottomNav() => Container(
     margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -736,96 +791,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.medical_services_outlined),
-            activeIcon: Icon(Icons.medical_services),
             label: 'Services',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month_outlined),
-            activeIcon: Icon(Icons.calendar_month),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
       ),
-    ),
-  );
-
-  Widget _drawer() => Drawer(
-    backgroundColor: card,
-    child: ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        DrawerHeader(
-          decoration: BoxDecoration(gradient: goldGrad),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Text(
-                  widget.firstName[0],
-                  style: TextStyle(
-                    color: goldDark,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '${widget.firstName} ${widget.lastName}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-        _drawerItem(
-          Icons.info,
-          'About Clinic',
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AboutClinicScreen(isDarkMode: isDark),
-            ),
-          ),
-        ),
-        _drawerItem(
-          Icons.history,
-          'History',
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => HistoryScreen(
-                appointments: appointments,
-                patientName: widget.patientName,
-                firstName: widget.firstName,
-                isDarkMode: isDark,
-                lastName: widget.lastName,
-              ),
-            ),
-          ),
-        ),
-        const Divider(),
-        _drawerItem(
-          Icons.logout,
-          'Logout',
-          () => Navigator.pushReplacementNamed(context, '/'),
-          color: Colors.red,
-        ),
-      ],
     ),
   );
 
