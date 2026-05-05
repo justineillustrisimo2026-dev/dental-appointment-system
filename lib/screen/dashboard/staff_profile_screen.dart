@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, duplicate_ignore
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,6 +30,7 @@ class StaffProfileScreen extends StatelessWidget {
   Color get txt => isDark ? _inputCream : _textDark;
   Color get txtMuted => isDark ? const Color(0xFFA6967A) : _textMuted;
   Color get bdr =>
+      // ignore: deprecated_member_use
       isDark ? const Color(0xFF403626) : _goldMid.withOpacity(0.20);
 
   bool get isDark => isDarkMode;
@@ -64,6 +67,7 @@ class StaffProfileScreen extends StatelessWidget {
                   },
                   child: Container(
                     decoration: BoxDecoration(
+                      // ignore: deprecated_member_use
                       color: Colors.black.withOpacity(0.3),
                       shape: BoxShape.circle,
                     ),
@@ -104,6 +108,7 @@ class StaffProfileScreen extends StatelessWidget {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
+                            // ignore: deprecated_member_use
                             colors: [bg.withOpacity(0.0), bg],
                           ),
                         ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'get_started_screen.dart';
 import 'package:dentalclinicsystem/screen/auth/get_started_screen.dart';
 
 void main() {

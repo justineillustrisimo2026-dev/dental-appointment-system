@@ -1,3 +1,4 @@
+// ignore_for_file: unnecessary_underscores, deprecated_member_use
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -353,41 +354,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
     ],
-  );
-
-  // ── FLOATING ACTION BUTTON: Book Now button that appears on scroll. ──
-  Widget _scrollFab() => ScaleTransition(
-    scale: CurvedAnimation(parent: _fabAnim, curve: Curves.elasticOut),
-    child: Container(
-      decoration: BoxDecoration(
-        gradient: goldGradient,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.goldDeep.withOpacity(0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          setState(() => _idx = 1);
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: Text(
-          'Book Now',
-          style: GoogleFonts.dmSans(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    ),
   );
 
   // ── HOME FEED ──

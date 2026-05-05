@@ -215,6 +215,7 @@ class _GetStartedScreenState extends State<GetStartedScreen>
                             borderRadius: BorderRadius.circular(35),
                             boxShadow: [
                               BoxShadow(
+                                // ignore: deprecated_member_use
                                 color: _goldDeep.withOpacity(0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),

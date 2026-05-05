@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,7 +23,7 @@ class CalendarScreen extends StatefulWidget {
     required this.onReschedule,
   });
 
-  get contactNo => null;
+  Null get contactNo => null;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -707,7 +709,6 @@ class _CalendarScreenState extends State<CalendarScreen>
     final isPending = status == 'pending';
     final isUpcoming = status == 'upcoming';
     final isCompleted = status == 'completed';
-    final isCancelled = status == 'cancelled';
 
     final Color statusColor = isPending
         ? pendingOrange
