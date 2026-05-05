@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class HistoryScreen extends StatefulWidget {
   final List<Map<String, dynamic>> appointments;
@@ -20,6 +22,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   late bool isDark;
+
   @override
   void initState() {
     super.initState();
@@ -34,20 +37,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  // ── THEME COLORS ──
-  Color get bg => isDark ? const Color(0xFF0F172A) : const Color(0xFFF4F6F9);
-  Color get card => isDark ? const Color(0xFF1E293B) : Colors.white;
-  Color get surface =>
-      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-  Color get text => isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
-  Color get textMuted =>
-      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-  Color get border =>
-      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+  // ── PALETTE FROM LOGIN & DASHBOARD ──
+  static const Color _cardWhite = Color(0xFFFFFFFF);
+  static const Color _inputCream = Color(0xFFFAF6EE);
+  static const Color _goldDeep = Color(0xFFB88A44);
+  static const Color _goldMid = Color(0xFFD4AF37);
+  static const Color _goldShine = Color(0xFFF0D86C);
+  static const Color _goldPrimary = Color(0xFFB59410);
+  static const Color _textDark = Color(0xFF2C2410);
+  static const Color _textMuted = Color(0xFF8A7A5A);
 
-  final primary = const Color(0xFF4A6CF7);
-  final accent = const Color(0xFF00D4FF);
-  final success = const Color(0xFF10B981);
+  // Dynamic Theme Getters
+  Color get bg => isDark ? const Color(0xFF1A160F) : Colors.white;
+  Color get cardBg => isDark ? const Color(0xFF262016) : _cardWhite;
+  Color get innerSurface => isDark ? const Color(0xFF332B1E) : _inputCream;
+  Color get ink => isDark ? _inputCream : _textDark;
+  Color get inkMuted => isDark ? const Color(0xFFA6967A) : _textMuted;
+  Color get bdr =>
+      isDark ? const Color(0xFF403626) : _goldMid.withOpacity(0.28);
+
+  Color get successGreen =>
+      isDark ? const Color(0xFF10B981) : const Color(0xFF059669);
+
+  LinearGradient get goldGradient => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [_goldDeep, _goldMid, _goldShine, _goldMid],
+    stops: [0.0, 0.35, 0.65, 1.0],
+  );
 
   List<Map<String, dynamic>> get _completedAppointments => widget.appointments
       .where((a) => a['status'] == 'completed')
@@ -64,26 +81,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: text),
+          icon: const Icon(Icons.arrow_back_rounded, color: _goldPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Appointment History',
-          style: TextStyle(
-            color: text,
+          style: GoogleFonts.dmSans(
+            color: ink,
             fontWeight: FontWeight.w900,
             fontSize: 18,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              color: text,
-            ),
-            onPressed: () => setState(() => isDark = !isDark),
-          ),
-        ],
+        // Dark mode button removed. Theme state is controlled via Dashboard/Profile.
       ),
       body: _completedAppointments.isEmpty
           ? _emptyState()
@@ -93,17 +102,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Past Appointments',
-                    style: TextStyle(
-                      color: text,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          gradient: goldGradient,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Past Appointments',
+                        style: GoogleFonts.dmSans(
+                          color: ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   ..._completedAppointments.map((a) => _historyCard(a)),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -114,127 +136,204 @@ class _HistoryScreenState extends State<HistoryScreen> {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.history, size: 80, color: textMuted.withOpacity(0.3)),
-        const SizedBox(height: 20),
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: innerSurface,
+            shape: BoxShape.circle,
+            border: Border.all(color: bdr),
+          ),
+          child: Icon(
+            Icons.history_rounded,
+            size: 36,
+            color: inkMuted.withOpacity(0.5),
+          ),
+        ),
+        const SizedBox(height: 24),
         Text(
           'No History Yet',
-          style: TextStyle(
-            color: text,
+          style: GoogleFonts.dmSans(
+            color: ink,
             fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Your completed appointments\nwill appear here',
+          'Your completed appointments\nwill securely appear here.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: textMuted, fontSize: 14, height: 1.4),
+          style: GoogleFonts.dmSans(
+            color: inkMuted,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
+          ),
         ),
       ],
     ),
   );
 
-  Widget _historyCard(Map<String, dynamic> a) => Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: card,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: border),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black12.withOpacity(0.04),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+  Widget _historyCard(Map<String, dynamic> a) {
+    final DateTime? date = a['date'] as DateTime?;
+    final String dateStr = date != null
+        ? DateFormat('MMM d, yyyy').format(date)
+        : 'N/A';
+
+    // Formatting time to AM/PM
+    String timeStr = a['time'] ?? 'N/A';
+    if (timeStr.contains(':')) {
+      try {
+        final parts = timeStr.split(':');
+        int h = int.parse(parts[0]);
+        final m = parts[1];
+        final p = h >= 12 ? 'PM' : 'AM';
+        if (h > 12) h -= 12;
+        if (h == 0) h = 12;
+        timeStr = '${h.toString().padLeft(2, '0')}:$m $p';
+      } catch (_) {}
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: bdr),
+        boxShadow: [
+          BoxShadow(
+            color: _goldDeep.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: innerSurface,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.medical_services_rounded,
+                    color: _goldPrimary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        a['service'] ?? 'Service',
+                        style: GoogleFonts.dmSans(
+                          color: ink,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        a['doctor'] ?? 'Doctor',
+                        style: GoogleFonts.dmSans(
+                          color: _goldPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: successGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: successGreen.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: successGreen,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Completed',
+                        style: GoogleFonts.dmSans(
+                          color: successGreen,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: innerSurface,
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(23),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today_rounded, size: 14, color: inkMuted),
+                const SizedBox(width: 6),
+                Text(
+                  dateStr,
+                  style: GoogleFonts.dmSans(
+                    color: ink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.access_time_rounded, size: 14, color: inkMuted),
+                const SizedBox(width: 6),
+                Text(
+                  timeStr,
+                  style: GoogleFonts.dmSans(
+                    color: ink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (a['price'] != null) ...[
+                  const Spacer(),
                   Text(
-                    a['service'] ?? 'Service',
-                    style: TextStyle(
-                      color: text,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    a['price'] as String,
+                    style: GoogleFonts.dmSans(
+                      color: _goldPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    a['doctor'] ?? 'Doctor',
-                    style: TextStyle(color: textMuted, fontSize: 13),
-                  ),
                 ],
-              ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: success.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Completed',
-                style: TextStyle(
-                  color: success,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Icon(Icons.calendar_today, size: 14, color: primary),
-            const SizedBox(width: 6),
-            Text(
-              a['date'] != null
-                  ? '${a['date'].day}/${a['date'].month}/${a['date'].year}'
-                  : 'N/A',
-              style: TextStyle(color: textMuted, fontSize: 12),
-            ),
-            const SizedBox(width: 16),
-            Icon(Icons.access_time, size: 14, color: primary),
-            const SizedBox(width: 6),
-            Text(
-              a['time'] ?? 'N/A',
-              style: TextStyle(color: textMuted, fontSize: 12),
-            ),
-          ],
-        ),
-        if (a['duration'] != null) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.hourglass_top, size: 14, color: primary),
-              const SizedBox(width: 6),
-              Text(
-                'Duration: ${a['duration']}',
-                style: TextStyle(color: textMuted, fontSize: 12),
-              ),
-            ],
           ),
         ],
-        if (a['description'] != null) ...[
-          const SizedBox(height: 10),
-          Text(
-            a['description'],
-            style: TextStyle(color: textMuted, fontSize: 13, height: 1.4),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }

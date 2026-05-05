@@ -1,14 +1,29 @@
+import 'dart:async';
+import 'dart:typed_data'; // ── ADDED FOR MEMORY IMAGE SUPPORT ──
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String patientName, firstName, lastName, contactNo;
+
+  // ── ADDED: Pass Image state up and down to sync with Dashboard ──
+  final Uint8List? profileImageBytes;
+  final Function(Uint8List?)? onImageChanged;
+  final Function(bool)? onThemeChanged;
+
   const ProfileScreen({
     super.key,
     required this.patientName,
     required this.firstName,
     required this.lastName,
     required this.contactNo,
+    this.profileImageBytes, // ── ADDED ──
+    this.onImageChanged, // ── ADDED ──
+    this.onThemeChanged,
   });
+
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -17,40 +32,49 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   bool _isEditing = false;
   bool _obscurePassword = true;
+  late bool _isDarkMode;
 
   late TextEditingController _usernameCtrl, _passwordCtrl, _contactCtrl;
-  late String _origUsername, _origPassword, _origContact;
-  late final String _firstName, _lastName;
 
-  // ── ✨ LUXURY GOLD THEME ──
-  final Color goldPrimary = const Color(0xFFD4AF37);
-  final Color goldDark = const Color(0xFFA67C00);
-  final Color goldLight = const Color(0xFFF9E4B7);
+  Uint8List? _profileImageBytes;
+  final ImagePicker _picker = ImagePicker();
 
-  bool get isDark => Theme.of(context).brightness == Brightness.dark;
-  Color get bg => isDark ? const Color(0xFF0F172A) : Colors.white;
-  Color get card => isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
-  Color get surface =>
-      isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
-  Color get text => isDark ? Colors.white : const Color(0xFF1E293B);
-  Color get textMuted =>
-      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-  Color get border =>
-      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
-  Color get danger => const Color(0xFFEF4444);
-  Color get success => const Color(0xFF10B981);
+  // ── LOCAL PALETTE ──
+  static const Color _goldPrimary = Color(0xFFB59410);
+  static const Color _goldMid = Color(0xFFD4AF37);
+  static const Color _goldDeep = Color(0xFFB88A44);
+  static const Color _goldShine = Color(0xFFF0D86C);
+
+  // Exact dark mode colors matching the Login Screen
+  bool get isDark => _isDarkMode;
+  Color get bg => isDark ? const Color(0xFF1A160F) : const Color(0xFFF9F9F9);
+  Color get cardBg => isDark ? const Color(0xFF262016) : Colors.white;
+  Color get innerSurface =>
+      isDark ? const Color(0xFF332B1E) : const Color(0xFFFAF6EE);
+  Color get ink => isDark ? const Color(0xFFFAF6EE) : const Color(0xFF2C2410);
+  Color get inkMuted =>
+      isDark ? const Color(0xFFA6967A) : const Color(0xFF8A7A5A);
+  Color get bdr =>
+      isDark ? const Color(0xFF403626) : _goldMid.withOpacity(0.20);
+
+  LinearGradient get goldGradient => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [_goldDeep, _goldMid, _goldShine, _goldMid],
+    stops: [0.0, 0.35, 0.65, 1.0],
+  );
 
   @override
   void initState() {
     super.initState();
-    _firstName = widget.firstName;
-    _lastName = widget.lastName;
+    _isDarkMode = false;
+
+    // ── ADDED: Initialize the image if already picked ──
+    _profileImageBytes = widget.profileImageBytes;
+
     _usernameCtrl = TextEditingController(text: widget.patientName);
     _passwordCtrl = TextEditingController(text: '********');
     _contactCtrl = TextEditingController(text: widget.contactNo);
-    _origUsername = widget.patientName;
-    _origPassword = '********';
-    _origContact = widget.contactNo;
   }
 
   @override
@@ -61,254 +85,318 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  Widget _pad(Widget w) =>
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: w);
+  // ── 100% WORKING IMAGE PICKER: Converts directly to memory bytes ──
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (image != null) {
+      final bytes = await image.readAsBytes();
+      setState(() => _profileImageBytes = bytes);
+
+      // ── ADDED: Send the new image up to the Dashboard! ──
+      if (widget.onImageChanged != null) {
+        widget.onImageChanged!(bytes);
+      }
+
+      HapticFeedback.mediumImpact();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: bg,
-      child: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(top: 115, bottom: 100),
-        children: [
-          _pad(
-            Text(
-              'My Profile',
-              style: TextStyle(
-                color: text,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
+    return Theme(
+      data: ThemeData(brightness: isDark ? Brightness.dark : Brightness.light),
+      child: Scaffold(
+        backgroundColor: bg,
+        body: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 250,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      _goldPrimary.withOpacity(isDark ? 0.15 : 0.08),
+                      bg.withOpacity(0.0),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-          _pad(
-            Text(
-              'Manage your personal information',
-              style: TextStyle(
-                color: textMuted,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+            ListView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(
+                top: 80,
+                bottom: 120,
+                left: 20,
+                right: 20,
               ),
-            ),
-          ),
-          const SizedBox(height: 32),
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 32),
+                _buildHeroCard(),
+                const SizedBox(height: 32),
 
-          _avatarSection(),
-          const SizedBox(height: 32),
+                _sectionLabel('Personal Details'),
+                const SizedBox(height: 12),
+                _buildCard([
+                  _row(
+                    Icons.person_rounded,
+                    'First Name',
+                    widget.firstName,
+                    true,
+                  ),
+                  Divider(height: 1, color: bdr, indent: 64),
+                  _row(
+                    Icons.person_outline_rounded,
+                    'Last Name',
+                    widget.lastName,
+                    true,
+                  ),
+                ]),
+                const SizedBox(height: 32),
 
-          _pad(_sectionLabel('Personal Details')),
-          const SizedBox(height: 16),
-          _pad(
-            _readOnlyCard(
-              Icons.person_rounded,
-              'First Name',
-              _firstName,
-              goldDark,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _pad(
-            _readOnlyCard(
-              Icons.person_outline_rounded,
-              'Last Name',
-              _lastName,
-              goldDark,
-            ),
-          ),
+                _sectionLabel('Account Settings'),
+                const SizedBox(height: 12),
+                _buildCard([
+                  _editRow(
+                    Icons.alternate_email_rounded,
+                    'Username',
+                    _usernameCtrl,
+                  ),
+                  Divider(height: 1, color: bdr, indent: 64),
+                  _editRow(
+                    Icons.phone_rounded,
+                    'Contact Number',
+                    _contactCtrl,
+                    TextInputType.phone,
+                  ),
+                  Divider(height: 1, color: bdr, indent: 64),
+                  _passwordRow(),
+                ]),
+                const SizedBox(height: 32),
 
-          const SizedBox(height: 32),
-          _pad(_sectionLabel('Account Settings')),
-          const SizedBox(height: 16),
-          _pad(
-            _editableCard(
-              Icons.alternate_email_rounded,
-              'Username',
-              _usernameCtrl,
-              TextInputType.text,
-              goldPrimary,
+                // ── GENERAL SETTINGS: ONLY DARK MODE ──
+                _sectionLabel('General Settings'),
+                const SizedBox(height: 12),
+                _buildCard([_darkModeToggle()]),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          _pad(
-            _editableCard(
-              Icons.phone_rounded,
-              'Contact Number',
-              _contactCtrl,
-              TextInputType.phone,
-              goldPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _pad(_passwordCard()),
-
-          const SizedBox(height: 40),
-          _pad(_actionButtons()),
-        ],
+            if (_isEditing) _buildSaveBar(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _avatarSection() => Center(
-    child: Stack(
-      alignment: Alignment.bottomRight,
+  Widget _buildHeader() => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'My Profile',
+            style: GoogleFonts.dmSans(
+              color: ink,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            'Manage personal information',
+            style: GoogleFonts.dmSans(color: inkMuted, fontSize: 14),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  Widget _buildHeroCard() => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: cardBg,
+      borderRadius: BorderRadius.circular(32),
+      border: Border.all(color: bdr),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+          blurRadius: 15,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    ),
+    child: Column(
       children: [
+        // ── UPDATED AVATAR: Rendered cleanly with memory bytes ──
         Container(
           width: 110,
           height: 110,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [goldPrimary, goldDark]),
-            border: Border.all(color: bg, width: 4),
-            boxShadow: [
-              BoxShadow(
-                color: goldDark.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            color: innerSurface,
+            border: Border.all(color: _goldMid.withOpacity(0.4), width: 3),
           ),
-          child: Center(
-            child: Text(
-              '${_firstName[0]}${_lastName[0]}',
-              style: const TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-              ),
+          child: ClipOval(
+            child: _profileImageBytes != null
+                ? Image.memory(
+                    _profileImageBytes!,
+                    fit: BoxFit.cover,
+                    width: 110,
+                    height: 110,
+                  )
+                : Container(
+                    decoration: BoxDecoration(gradient: goldGradient),
+                    child: Center(
+                      child: Text(
+                        '${widget.firstName[0]}${widget.lastName[0]}',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '${widget.firstName} ${widget.lastName}',
+          style: GoogleFonts.dmSans(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: ink,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _goldPrimary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            'Verified Patient',
+            style: GoogleFonts.dmSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: _goldPrimary,
             ),
           ),
         ),
-        if (_isEditing)
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: card,
-              shape: BoxShape.circle,
-              border: Border.all(color: goldPrimary),
-            ),
-            child: Icon(Icons.camera_alt_rounded, size: 18, color: goldDark),
-          ),
-      ],
-    ),
-  );
+        const SizedBox(height: 24),
 
-  Widget _sectionLabel(String title) => Row(
-    children: [
-      Container(
-        width: 4,
-        height: 18,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [goldPrimary, goldDark]),
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-      const SizedBox(width: 10),
-      Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: text,
-        ),
-      ),
-    ],
-  );
-
-  Widget _readOnlyCard(IconData icon, String label, String val, Color col) =>
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: border),
-        ),
-        child: Row(
+        // ── SET PHOTO & EDIT BUTTONS ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: col.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: col, size: 22),
-            ),
-            const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: col,
-                      fontWeight: FontWeight.bold,
-                    ),
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: innerSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: bdr),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    val,
-                    style: TextStyle(
-                      color: text,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt_rounded, color: ink, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Set Photo',
+                        style: GoogleFonts.dmSans(
+                          color: ink,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Fixed',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: textMuted,
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _isEditing = true),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _goldPrimary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.edit_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Edit Profile',
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
-      );
-
-  Widget _editableCard(
-    IconData icon,
-    String label,
-    TextEditingController ctrl,
-    TextInputType type,
-    Color col,
-  ) => AnimatedContainer(
-    duration: const Duration(milliseconds: 250),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: card,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: _isEditing ? goldPrimary : border,
-        width: _isEditing ? 1.5 : 1,
-      ),
-      boxShadow: _isEditing
-          ? [BoxShadow(color: goldPrimary.withOpacity(0.1), blurRadius: 12)]
-          : null,
+      ],
     ),
+  );
+
+  Widget _buildCard(List<Widget> children) => Container(
+    decoration: BoxDecoration(
+      color: cardBg,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: bdr),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+          blurRadius: 15,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    ),
+    child: Column(children: children),
+  );
+
+  // ── ONLY DARK MODE TOGGLE ──
+  Widget _darkModeToggle() => Padding(
+    padding: const EdgeInsets.all(16),
     child: Row(
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: goldPrimary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(14),
+            color: innerSurface,
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: goldDark, size: 22),
+          child: Icon(
+            isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: inkMuted,
+            size: 20,
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -316,67 +404,230 @@ class _ProfileScreenState extends State<ProfileScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: goldDark,
-                  fontWeight: FontWeight.bold,
+                'Dark Mode',
+                style: GoogleFonts.dmSans(
+                  fontSize: 15,
+                  color: ink,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 4),
-              _isEditing
-                  ? TextField(
-                      controller: ctrl,
-                      keyboardType: type,
-                      style: TextStyle(
-                        color: text,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    )
-                  : Text(
-                      ctrl.text,
-                      style: TextStyle(
-                        color: text,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              Text(
+                'Switch to dark theme',
+                style: GoogleFonts.dmSans(fontSize: 12, color: inkMuted),
+              ),
             ],
           ),
         ),
-        Icon(
-          _isEditing ? Icons.edit_rounded : Icons.chevron_right_rounded,
-          color: _isEditing ? goldPrimary : textMuted,
-          size: 18,
+        Switch(
+          value: _isDarkMode,
+          activeColor: Colors.white,
+          activeTrackColor: _goldPrimary,
+          inactiveTrackColor: isDark
+              ? Colors.grey.shade800
+              : Colors.grey.shade300,
+          onChanged: (v) {
+            setState(() => _isDarkMode = v);
+            if (widget.onThemeChanged != null) widget.onThemeChanged!(v);
+          },
         ),
       ],
     ),
   );
 
-  Widget _passwordCard() => AnimatedContainer(
-    duration: const Duration(milliseconds: 250),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: card,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: _isEditing ? goldPrimary : border),
+  Widget _buildSaveBar() => Positioned(
+    bottom: 0,
+    left: 0,
+    right: 0,
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.4 : 0.05),
+            offset: const Offset(0, -5),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _isEditing = false),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: innerSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: bdr),
+                ),
+                child: Center(
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.dmSans(
+                      color: inkMuted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: GestureDetector(
+              onTap: () => setState(() => _isEditing = false),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: goldGradient,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    'Save Changes',
+                    style: GoogleFonts.dmSans(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
+  );
+
+  Widget _sectionLabel(String t) => Row(
+    children: [
+      Container(
+        width: 4,
+        height: 16,
+        decoration: BoxDecoration(
+          gradient: goldGradient,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Text(
+        t,
+        style: GoogleFonts.dmSans(
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+          color: ink,
+        ),
+      ),
+    ],
+  );
+
+  Widget _row(IconData i, String l, String v, bool f) => Padding(
+    padding: const EdgeInsets.all(16),
     child: Row(
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: goldPrimary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(14),
+            color: innerSurface,
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(Icons.lock_rounded, color: goldDark, size: 22),
+          child: Icon(i, color: inkMuted, size: 20),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l, style: GoogleFonts.dmSans(fontSize: 12, color: inkMuted)),
+            Text(
+              v,
+              style: GoogleFonts.dmSans(
+                color: ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const Spacer(),
+        if (f)
+          Icon(
+            Icons.lock_outline_rounded,
+            size: 16,
+            color: inkMuted.withOpacity(0.5),
+          ),
+      ],
+    ),
+  );
+
+  Widget _editRow(
+    IconData i,
+    String l,
+    TextEditingController c, [
+    TextInputType t = TextInputType.text,
+  ]) => Padding(
+    padding: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: innerSurface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(i, color: inkMuted, size: 20),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l, style: GoogleFonts.dmSans(fontSize: 12, color: inkMuted)),
+              _isEditing
+                  ? TextField(
+                      controller: c,
+                      keyboardType: t,
+                      style: GoogleFonts.dmSans(
+                        color: ink,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                      ),
+                    )
+                  : Text(
+                      c.text,
+                      style: GoogleFonts.dmSans(
+                        color: ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _passwordRow() => Padding(
+    padding: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: innerSurface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.lock_outline_rounded, color: inkMuted, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -385,34 +636,23 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               Text(
                 'Password',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: goldDark,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: GoogleFonts.dmSans(fontSize: 12, color: inkMuted),
               ),
-              const SizedBox(height: 4),
               _isEditing
                   ? TextField(
                       controller: _passwordCtrl,
                       obscureText: _obscurePassword,
-                      style: TextStyle(
-                        color: text,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
                       decoration: const InputDecoration(
                         isDense: true,
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
                       ),
                     )
                   : Text(
                       '••••••••',
-                      style: TextStyle(
-                        color: text,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      style: GoogleFonts.dmSans(
+                        color: ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
                         letterSpacing: 2,
                       ),
                     ),
@@ -422,85 +662,13 @@ class _ProfileScreenState extends State<ProfileScreen>
         if (_isEditing)
           IconButton(
             icon: Icon(
-              _obscurePassword
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-              color: goldPrimary,
-              size: 20,
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: _goldPrimary,
             ),
             onPressed: () =>
                 setState(() => _obscurePassword = !_obscurePassword),
-          )
-        else
-          Icon(Icons.chevron_right_rounded, color: textMuted, size: 18),
+          ),
       ],
     ),
   );
-
-  Widget _actionButtons() => Column(
-    children: [
-      if (_isEditing) ...[
-        ElevatedButton(
-          onPressed: _saveProfile,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: goldDark,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          child: const Text(
-            'SAVE CHANGES',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: _cancelEdit,
-          child: Text(
-            'Cancel',
-            style: TextStyle(color: danger, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ] else
-        ElevatedButton.icon(
-          onPressed: () => setState(() => _isEditing = true),
-          icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
-          label: const Text(
-            'EDIT PROFILE',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: goldDark,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-    ],
-  );
-
-  void _saveProfile() {
-    setState(() => _isEditing = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Profile updated!',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: success,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _cancelEdit() {
-    setState(() {
-      _usernameCtrl.text = _origUsername;
-      _passwordCtrl.text = _origPassword;
-      _contactCtrl.text = _origContact;
-      _isEditing = false;
-    });
-  }
 }

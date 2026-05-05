@@ -12,10 +12,13 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  image_picker: ^1.2.1
+  image_picker: ^1.2.2
   mobile_scanner: ^5.1.1 # Moved here from the bottom
   intl: ^0.20.2
   google_fonts: ^8.0.2
+  google_maps_flutter: ^2.17.0
+  url_launcher: ^6.3.2
+  webview_flutter: ^4.8.0
 
 dev_dependencies:
   flutter_test:
@@ -27,3 +30,29 @@ flutter:
 
   assets:
     - assets/clinic_logo.png
+    - assets/dentist1.png
+    - assets/smile1.png
+    - assets/smile2.png
+    - assets/smile3.png
+    - assets/consultation1.jpg
+    - assets/xray.jpg
+    - assets/extraction.jpg
+    - assets/cleaning.jpg
+    - assets/filling.jpg
+    - assets/braces.jpg
+    - assets/adjustment.jpg
+    - assets/rootcanal.jpg
+    - assets/bleaching.jpg
+    - assets/wisdom.jpg
+    - assets/dentures.jpg
+    - assets/crown.jpg
+    - assets/bridge.jpg
+    - assets/krischelle.png
+    - assets/Dr_krischelle.png
+    - assets/clyde.png
+    - assets/ashly.png
+    - assets/christine.png
+    - assets/arnette.png
+    
+
+  

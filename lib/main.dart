@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'screen/auth/login_screen.dart';
+import 'get_started_screen.dart';
+import 'package:dentalclinicsystem/screen/auth/get_started_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -16,7 +18,8 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF0A1A2F),
         scaffoldBackgroundColor: const Color(0xFF0A1A2F),
       ),
-      home: const LoginScreen(),
+      // ── The app now starts with the Get Started Screen ──
+      home: const GetStartedScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

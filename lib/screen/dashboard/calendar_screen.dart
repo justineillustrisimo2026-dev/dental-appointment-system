@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
+import 'app_theme.dart'; // ── GLOBAL THEME IMPORT ──
+
+// ── MAIN SCREEN SETUP: Receives appointment data and handles calendar UI logic. ──
 class CalendarScreen extends StatefulWidget {
   final List<Map<String, dynamic>> appointments;
   final String patientName, firstName, lastName;
@@ -15,512 +21,1286 @@ class CalendarScreen extends StatefulWidget {
     required this.onReschedule,
   });
 
+  get contactNo => null;
+
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
 class _CalendarScreenState extends State<CalendarScreen>
-    with SingleTickerProviderStateMixin {
-  String _filter = 'All';
-  DateTime _m = DateTime.now();
-  DateTime? _sel;
-  late TabController _tabs;
-
-  final _filters = ['All', 'Upcoming', 'Completed', 'Cancelled'];
-
-  // ── ✨ LUXURY GOLD THEME ──
-  final Color goldPrimary = const Color(0xFFD4AF37);
-  final Color goldDark = const Color(0xFFA67C00);
-  final Color goldLight = const Color(0xFFF9E4B7);
-
+    with TickerProviderStateMixin {
+  // ── DYNAMIC THEME GETTERS: Handles automatic switching between light and dark mode colors. ──
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
-  Color get bg => isDark ? const Color(0xFF0F172A) : Colors.white;
-  Color get card => isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
-  Color get surface =>
-      isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
-  Color get text => isDark ? Colors.white : const Color(0xFF1E293B);
-  Color get textMuted =>
-      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-  Color get border =>
-      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+  Color get bg => AppTheme.bg(isDark);
+  Color get surface => AppTheme.surface(isDark);
+  Color get cardBg => AppTheme.cardBg(isDark);
+  Color get innerSurface => AppTheme.innerSurface(isDark);
+  Color get ink => AppTheme.txt(isDark);
+  Color get inkMuted => AppTheme.txtMuted(isDark);
+  Color get bdr => AppTheme.bdr(isDark);
 
-  Color get success => const Color(0xFF10B981);
-  Color get danger => const Color(0xFFEF4444);
+  Color get successGreen =>
+      isDark ? const Color(0xFF10B981) : const Color(0xFF059669);
+  Color get dangerRed =>
+      isDark ? Colors.redAccent.shade200 : const Color(0xFFDC2626);
+  Color get pendingOrange =>
+      isDark ? const Color(0xFFF59E0B) : const Color(0xFFD97706);
 
+  LinearGradient get goldGradient => AppTheme.goldGradient;
+  List<BoxShadow> get profileShadow => AppTheme.profileShadow(isDark);
+
+  // ── STATE VARIABLES: Tracks current filter, selected date, and UI toggles. ──
+  String _filter = 'All';
+  DateTime _month = DateTime.now();
+  DateTime? _selectedDay;
+  late TabController _tabCtrl;
+
+  final _filters = ['All', 'Pending', 'Upcoming', 'Completed', 'Cancelled'];
+
+  final Set<int> _expandedCodes = {};
+
+  final List<String> _rescheduleSlots = [
+    "08:00 AM",
+    "09:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "01:00 PM",
+    "02:00 PM",
+    "03:00 PM",
+    "04:00 PM",
+  ];
+
+  // ── LIFECYCLE: Sets up tab controller on init and disposes it on exit. ──
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: _filters.length, vsync: this);
-    _tabs.addListener(() => setState(() => _filter = _filters[_tabs.index]));
+    _tabCtrl = TabController(length: _filters.length, vsync: this);
+    _tabCtrl.addListener(() {
+      if (!_tabCtrl.indexIsChanging) {
+        setState(() {
+          _filter = _filters[_tabCtrl.index];
+          _expandedCodes.clear();
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
-    _tabs.dispose();
+    _tabCtrl.dispose();
     super.dispose();
   }
 
+  // ── APPOINTMENT FILTERS: Logic to sort and filter appointments by date and status. ──
   List<Map<String, dynamic>> get _filtered {
-    var l = _sel != null
-        ? widget.appointments
-              .where(
-                (a) =>
-                    a['date'].day == _sel!.day &&
-                    a['date'].month == _sel!.month &&
-                    a['date'].year == _sel!.year,
-              )
-              .toList()
-        : widget.appointments;
-    if (_filter == 'All') return l.toList();
-    return l.where((a) => a['status'] == _filter.toLowerCase()).toList();
+    var list = widget.appointments;
+    if (_selectedDay != null) {
+      list = list.where((a) {
+        final d = a['date'] as DateTime;
+        return d.year == _selectedDay!.year &&
+            d.month == _selectedDay!.month &&
+            d.day == _selectedDay!.day;
+      }).toList();
+    }
+    if (_filter != 'All') {
+      list = list.where((a) => a['status'] == _filter.toLowerCase()).toList();
+    }
+    list = List.from(list)
+      ..sort((a, b) {
+        final order = {
+          'pending': 0,
+          'upcoming': 1,
+          'completed': 2,
+          'cancelled': 3,
+        };
+        return (order[a['status']] ?? 4).compareTo(order[b['status']] ?? 4);
+      });
+    return list;
   }
 
-  Widget _pad(Widget w) =>
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: w);
+  int _countByStatus(String s) =>
+      widget.appointments.where((a) => a['status'] == s).length;
 
+  bool _hasAppointment(DateTime date) => widget.appointments.any((a) {
+    final d = a['date'] as DateTime;
+    return d.year == date.year && d.month == date.month && d.day == date.day;
+  });
+
+  // ── DATA FORMATTERS: Helper functions to format time and dates neatly. ──
+  String _fmtTime(String t) {
+    if (t.isEmpty) return '';
+    if (t.contains('AM') || t.contains('PM')) return t;
+    try {
+      final p = t.split(':');
+      final h = int.parse(p[0]);
+      final m = p[1];
+      return '${h > 12
+          ? h - 12
+          : h == 0
+          ? 12
+          : h}:$m ${h >= 12 ? 'PM' : 'AM'}';
+    } catch (_) {
+      return t;
+    }
+  }
+
+  String _fmtDate(DateTime d) => DateFormat('EEE, MMM d, yyyy').format(d);
+
+  // ── MAIN BUILD METHOD: Constructs the CustomScrollView holding the calendar and lists. ──
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: bg,
-      child: ListView(
+    return Scaffold(
+      backgroundColor: bg,
+      body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(top: 115, bottom: 100),
-        children: [
-          _pad(
-            Text(
-              'My Appointments',
-              style: TextStyle(
-                color: text,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ),
-          _pad(
-            Text(
-              'Manage your dental schedule',
-              style: TextStyle(
-                color: textMuted,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          _pad(_headerStats()),
-          const SizedBox(height: 24),
-
-          _pad(_calendarCard()),
-          const SizedBox(height: 24),
-
-          _pad(_tabBar()),
-          const SizedBox(height: 20),
-
-          _appointmentsList(),
+        slivers: [
+          _buildSliverHeader(),
+          SliverToBoxAdapter(child: _buildStatsRow()),
+          SliverToBoxAdapter(child: _buildCalendarCard()),
+          SliverToBoxAdapter(child: _buildFilterTabs()),
+          _buildAppointmentSliver(),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );
   }
 
-  Widget _headerStats() => Row(
-    children: [
-      _statPill(
-        Icons.calendar_today_rounded,
-        '${widget.appointments.where((a) => a['status'] == 'upcoming').length}',
-        'Pending',
-        goldPrimary,
-      ),
-      const SizedBox(width: 12),
-      _statPill(
-        Icons.check_circle_outline_rounded,
-        '${widget.appointments.where((a) => a['status'] == 'completed').length}',
-        'Done',
-        success,
-      ),
-      const SizedBox(width: 12),
-      _statPill(
-        Icons.history_rounded,
-        '${widget.appointments.length}',
-        'Total',
-        goldDark,
-      ),
-    ],
-  );
-
-  Widget _statPill(IconData icon, String val, String label, Color c) =>
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: card,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: border),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: c, size: 24),
-              const SizedBox(height: 8),
-              Text(
-                val,
-                style: TextStyle(
-                  color: text,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                label,
-                style: TextStyle(
-                  color: textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-  Widget _calendarCard() => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: card,
-      borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: border),
-      boxShadow: [
-        BoxShadow(color: goldPrimary.withOpacity(0.05), blurRadius: 20),
-      ],
-    ),
-    child: Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // ── TOP HEADER: Collapsible app bar displaying user greeting. ──
+  Widget _buildSliverHeader() {
+    return SliverAppBar(
+      expandedHeight: 80,
+      floating: false,
+      pinned: true,
+      backgroundColor: cardBg,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      automaticallyImplyLeading: false,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        title: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              icon: Icon(Icons.chevron_left_rounded, color: goldDark),
-              onPressed: () =>
-                  setState(() => _m = DateTime(_m.year, _m.month - 1)),
+            Text(
+              "My Appointments",
+              style: GoogleFonts.dmSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                color: ink,
+              ),
             ),
             Text(
-              '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][_m.month - 1]} ${_m.year}',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                color: goldDark,
-                fontSize: 16,
+              "Hello, ${widget.firstName}! Manage your schedule",
+              style: GoogleFonts.dmSans(
+                fontSize: 10,
+                color: inkMuted,
+                fontWeight: FontWeight.w600,
               ),
-            ),
-            IconButton(
-              icon: Icon(Icons.chevron_right_rounded, color: goldDark),
-              onPressed: () =>
-                  setState(() => _m = DateTime(_m.year, _m.month + 1)),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
-              .map(
-                (d) => Text(
-                  d,
-                  style: TextStyle(
-                    color: textMuted,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+        background: Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            border: Border(bottom: BorderSide(color: bdr)),
+          ),
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 48, right: 20),
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: AppTheme.goldPrimary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── STATS ROW: Displays counts for Pending, Upcoming, Completed, and Cancelled apps. ──
+  Widget _buildStatsRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Row(
+        children: [
+          _statCard(
+            Icons.schedule_rounded,
+            "${_countByStatus('pending')}",
+            "Pending",
+            pendingOrange,
+          ),
+          const SizedBox(width: 8),
+          _statCard(
+            Icons.hourglass_top_rounded,
+            "${_countByStatus('upcoming')}",
+            "Upcoming",
+            AppTheme.goldPrimary,
+          ),
+          const SizedBox(width: 8),
+          _statCard(
+            Icons.check_circle_outline_rounded,
+            "${_countByStatus('completed')}",
+            "Complete",
+            successGreen,
+          ),
+          const SizedBox(width: 8),
+          _statCard(
+            Icons.cancel_outlined,
+            "${_countByStatus('cancelled')}",
+            "Cancel",
+            dangerRed,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(IconData icon, String val, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: bdr),
+          boxShadow: profileShadow,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 12),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              val,
+              style: GoogleFonts.dmSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                color: ink,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.dmSans(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: inkMuted,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── CALENDAR VIEW: Generates the month grid and highlights selected/today/appt dates. ──
+  Widget _buildCalendarCard() {
+    final daysInMonth = DateUtils.getDaysInMonth(_month.year, _month.month);
+    final firstOffset = (_month.weekday - 1) % 7;
+    final today = DateTime.now();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: bdr),
+          boxShadow: profileShadow,
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _navBtn(
+                  Icons.chevron_left_rounded,
+                  () => setState(
+                    () => _month = DateTime(_month.year, _month.month - 1),
                   ),
                 ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 8),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            childAspectRatio: 1.1,
-          ),
-          itemCount:
-              DateTime(_m.year, _m.month + 1, 0).day +
-              DateTime(_m.year, _m.month, 1).weekday -
-              1,
-          itemBuilder: (_, i) {
-            final first = DateTime(_m.year, _m.month, 1).weekday - 1;
-            if (i < first) return const SizedBox();
-            final dy = i - first + 1,
-                date = DateTime(_m.year, _m.month, dy),
-                now = DateTime.now();
-            final isToday =
-                now.day == dy && now.month == _m.month && now.year == _m.year;
-            final sel = _sel?.day == dy && _sel?.month == _m.month;
-            final hasAppt = widget.appointments.any(
-              (a) =>
-                  a['date'].day == dy &&
-                  a['date'].month == _m.month &&
-                  a['date'].year == _m.year,
-            );
-            return GestureDetector(
-              onTap: () => setState(() => _sel = sel ? null : date),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: sel
-                      ? goldPrimary
-                      : isToday
-                      ? goldPrimary.withOpacity(0.15)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: hasAppt && !sel
-                      ? Border.all(
-                          color: goldPrimary.withOpacity(0.5),
-                          width: 1.5,
-                        )
-                      : null,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      '$dy',
-                      style: TextStyle(
-                        color: sel
-                            ? Colors.white
-                            : (isToday || hasAppt)
-                            ? goldDark
-                            : text,
-                        fontWeight: (sel || isToday || hasAppt)
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _month = DateTime.now();
+                    _selectedDay = null;
+                  }),
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat('MMMM yyyy').format(_month),
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          color: ink,
+                        ),
                       ),
-                    ),
-                    if (hasAppt && !sel)
-                      Positioned(
-                        bottom: 4,
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: goldDark,
-                            shape: BoxShape.circle,
+                      if (_selectedDay != null)
+                        Text(
+                          DateFormat('MMM d').format(_selectedDay!),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: AppTheme.goldPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                _navBtn(
+                  Icons.chevron_right_rounded,
+                  () => setState(
+                    () => _month = DateTime(_month.year, _month.month + 1),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+                  .map(
+                    (d) => Expanded(
+                      child: Center(
+                        child: Text(
+                          d,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: d == "Su"
+                                ? dangerRed.withOpacity(0.5)
+                                : inkMuted,
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 10),
+            GridView.builder(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisExtent: 42,
+                mainAxisSpacing: 2,
               ),
-            );
-          },
+              itemCount: firstOffset + daysInMonth,
+              itemBuilder: (_, i) {
+                if (i < firstOffset) return const SizedBox();
+                final day = i - firstOffset + 1;
+                final date = DateTime(_month.year, _month.month, day);
+                final isToday =
+                    date.year == today.year &&
+                    date.month == today.month &&
+                    date.day == today.day;
+                final isSel =
+                    _selectedDay != null &&
+                    _selectedDay!.year == date.year &&
+                    _selectedDay!.month == date.month &&
+                    _selectedDay!.day == date.day;
+                final hasAppt = _hasAppointment(date);
+                final isSunday = date.weekday == DateTime.sunday;
+
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _selectedDay = isSel ? null : date);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    margin: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      gradient: isSel ? goldGradient : null,
+                      color: isSel
+                          ? null
+                          : isToday
+                          ? innerSurface
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      border: isToday && !isSel
+                          ? Border.all(
+                              color: AppTheme.goldPrimary.withOpacity(0.5),
+                              width: 1.5,
+                            )
+                          : null,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Text(
+                          "$day",
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: isSel || isToday || hasAppt
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: isSel
+                                ? Colors.white
+                                : isSunday
+                                ? dangerRed.withOpacity(0.4)
+                                : isToday
+                                ? AppTheme.goldPrimary
+                                : ink,
+                          ),
+                        ),
+                        if (hasAppt && !isSel)
+                          Positioned(
+                            bottom: 4,
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.goldPrimary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _legendDot(AppTheme.goldPrimary, "Has appointment"),
+                const SizedBox(width: 16),
+                _legendDot(innerSurface, "Today", border: AppTheme.goldPrimary),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navBtn(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: innerSurface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: bdr),
+        ),
+        child: Icon(icon, color: ink, size: 20),
+      ),
+    );
+  }
+
+  Widget _legendDot(Color c, String label, {Color? border}) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: c,
+            shape: BoxShape.circle,
+            border: border != null
+                ? Border.all(color: border, width: 1.5)
+                : null,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: GoogleFonts.dmSans(
+            fontSize: 11,
+            color: inkMuted,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
-    ),
-  );
+    );
+  }
 
-  Widget _tabBar() => Container(
-    padding: const EdgeInsets.all(4),
-    decoration: BoxDecoration(
-      color: surface,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: border),
-    ),
-    child: TabBar(
-      controller: _tabs,
-      indicator: BoxDecoration(
-        color: goldDark,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: goldDark.withOpacity(0.3), blurRadius: 8)],
-      ),
-      dividerColor: Colors.transparent,
-      labelColor: Colors.white,
-      unselectedLabelColor: textMuted,
-      tabs: _filters
-          .map(
-            (f) => Tab(
-              height: 36,
-              child: Text(
-                f,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    ),
-  );
-
-  Widget _appointmentsList() {
-    if (_filtered.isEmpty)
-      return _pad(
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: card,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                Icons.event_busy_rounded,
-                size: 48,
-                color: textMuted.withOpacity(0.3),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'No records found',
-                style: TextStyle(color: textMuted, fontWeight: FontWeight.bold),
+  // ── FILTER TABS: Buttons to sort the appointment list below the calendar. ──
+  Widget _buildFilterTabs() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: bdr),
+        ),
+        child: TabBar(
+          controller: _tabCtrl,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          indicator: BoxDecoration(
+            gradient: goldGradient,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.goldPrimary.withOpacity(0.3),
+                blurRadius: 8,
               ),
             ],
           ),
+          dividerColor: Colors.transparent,
+          labelColor: Colors.white,
+          unselectedLabelColor: inkMuted,
+          labelStyle: GoogleFonts.dmSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
+          ),
+          unselectedLabelStyle: GoogleFonts.dmSans(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+          tabs: _filters.map((f) => Tab(height: 36, text: f)).toList(),
         ),
-      );
-    return Column(children: _filtered.map((a) => _pad(_apptCard(a))).toList());
+      ),
+    );
   }
 
-  Widget _apptCard(Map a) {
-    final status = a['status'];
-    final isUp = status == 'upcoming';
-    final col = isUp ? goldDark : (status == 'completed' ? success : danger);
+  // ── APPOINTMENT LIST: Renders the filtered appointments as a scrolling list of cards. ──
+  Widget _buildAppointmentSliver() {
+    final list = _filtered;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: CircleAvatar(
-              radius: 25,
-              backgroundColor: col.withOpacity(0.1),
-              child: Icon(Icons.medical_services_rounded, color: col),
+    if (list.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+          child: Container(
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: bdr),
+              boxShadow: profileShadow,
             ),
-            title: Text(
-              a['service'],
-              style: TextStyle(fontWeight: FontWeight.w900, color: text),
-            ),
-            subtitle: Text(
-              'Dr. ${a['doctor'].split('Dr. ').last}',
-              style: TextStyle(
-                color: textMuted,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: col.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                status.toUpperCase(),
-                style: TextStyle(
-                  color: col,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          Divider(height: 1, color: border),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               children: [
-                Icon(
-                  Icons.calendar_today_rounded,
-                  size: 14,
-                  color: goldPrimary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '${a['date'].day}/${a['date'].month}/${a['date'].year}',
-                  style: TextStyle(
-                    color: text,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: innerSurface,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.event_busy_rounded,
+                    size: 30,
+                    color: inkMuted.withOpacity(0.4),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Icon(Icons.access_time_rounded, size: 14, color: goldPrimary),
-                const SizedBox(width: 6),
+                const SizedBox(height: 16),
                 Text(
-                  _fmtTime(a['time']),
-                  style: TextStyle(
-                    color: text,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                  _selectedDay != null
+                      ? "No appointments on this day"
+                      : "No appointments found",
+                  style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: ink,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Book a service to see it here",
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: inkMuted,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          if (isUp) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _reschedule(a),
-                      icon: const Icon(Icons.edit_calendar_rounded, size: 16),
-                      label: const Text('Reschedule'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: goldDark,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((_, i) {
+        final appt = list[i];
+        final showHeader =
+            i == 0 ||
+            (list[i]['date'] as DateTime).day !=
+                (list[i - 1]['date'] as DateTime).day;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (showHeader) ...[
+                const SizedBox(height: 20),
+                _dateHeader(appt['date'] as DateTime),
+                const SizedBox(height: 10),
+              ],
+              _appointmentCard(appt, i),
+            ],
+          ),
+        );
+      }, childCount: list.length),
+    );
+  }
+
+  Widget _dateHeader(DateTime date) {
+    final today = DateTime.now();
+    final isToday =
+        date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day;
+    final isTomorrow =
+        date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day + 1;
+    String label = isToday
+        ? "Today"
+        : isTomorrow
+        ? "Tomorrow"
+        : DateFormat('EEEE, MMMM d').format(date);
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: isToday ? innerSurface : surface,
+            borderRadius: BorderRadius.circular(8),
+            border: isToday
+                ? Border.all(color: AppTheme.goldPrimary.withOpacity(0.4))
+                : Border.all(color: bdr),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: isToday ? AppTheme.goldPrimary : inkMuted,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Container(height: 1, color: bdr)),
+      ],
+    );
+  }
+
+  Widget _appointmentCard(Map<String, dynamic> a, int index) {
+    final status = a['status'] as String;
+    final isPending = status == 'pending';
+    final isUpcoming = status == 'upcoming';
+    final isCompleted = status == 'completed';
+    final isCancelled = status == 'cancelled';
+
+    final Color statusColor = isPending
+        ? pendingOrange
+        : isUpcoming
+        ? AppTheme.goldPrimary
+        : isCompleted
+        ? successGreen
+        : dangerRed;
+
+    final String statusLabel = isPending
+        ? 'Pending Approval'
+        : isUpcoming
+        ? 'Confirmed'
+        : status.toUpperCase();
+
+    final DateTime? date = a['date'] as DateTime?;
+    final String dateStr = date != null
+        ? DateFormat('EEEE, MMMM d, yyyy').format(date)
+        : 'TBD';
+    final String timeStr = _fmtTime(a['time'] ?? 'TBD');
+    final String duration = a['duration'] ?? '—';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isUpcoming ? statusColor.withOpacity(0.4) : bdr,
+          width: isUpcoming ? 1.5 : 1,
+        ),
+        boxShadow: profileShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isUpcoming || isPending
+                      ? statusColor.withOpacity(isDark ? 0.1 : 0.15)
+                      : innerSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: statusColor.withOpacity(0.5)),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: GoogleFonts.dmSans(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: innerSurface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppTheme.goldPrimary.withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  a['price'] ?? '—',
+                  style: GoogleFonts.dmSans(
+                    color: AppTheme.goldPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.medical_services_rounded,
+                  color: statusColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      a['service'] ?? 'Appointment',
+                      style: GoogleFonts.dmSans(
+                        color: ink,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      a['doctor'] ?? 'Dentist',
+                      style: GoogleFonts.dmSans(
+                        color: inkMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(height: 1, color: bdr),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.goldPrimary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 16,
+                  color: AppTheme.goldPrimary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Date & Time",
+                      style: GoogleFonts.dmSans(
+                        color: inkMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "$dateStr • $timeStr",
+                      style: GoogleFonts.dmSans(
+                        color: ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: innerSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: bdr),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.timer_outlined, size: 14, color: inkMuted),
+                    const SizedBox(width: 4),
+                    Text(
+                      duration,
+                      style: GoogleFonts.dmSans(
+                        color: inkMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          if (isPending || isUpcoming) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _actionButton(
+                    label: "Reschedule",
+                    color: AppTheme.goldPrimary,
+                    gradient: goldGradient,
+                    onTap: () => _showReschedule(a),
                   ),
-                  const SizedBox(width: 10),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _actionButton(
+                    label: "Summary",
+                    color: AppTheme.goldPrimary,
+                    outlined: true,
+                    onTap: () =>
+                        _showAppointmentSummary(a, statusLabel, statusColor),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _actionButton(
+                    label: "Cancel",
+                    color: dangerRed,
+                    outlined: true,
+                    onTap: () => _showCancelDialog(a),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ── APPOINTMENT SUMMARY: Bottom sheet showing full details of a clicked appointment. ──
+  void _showAppointmentSummary(
+    Map<String, dynamic> a,
+    String statusLabel,
+    Color statusColor,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: bdr,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppTheme.goldPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.receipt_long_rounded,
+                      color: AppTheme.goldPrimary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _cancel(a),
-                      icon: const Icon(Icons.cancel_rounded, size: 16),
-                      label: const Text('Cancel'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: danger,
-                        side: BorderSide(color: danger.withOpacity(0.3)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Appointment Summary",
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            color: ink,
+                          ),
                         ),
+                        Text(
+                          "Full booking details",
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: inkMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: statusColor.withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      style: GoogleFonts.dmSans(
+                        color: statusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
+                  _buildSectionHeader("Patient Info"),
+                  const SizedBox(height: 8),
+                  _summaryRow(
+                    Icons.person_outline_rounded,
+                    "Name",
+                    a['patientName'] ??
+                        "${widget.firstName} ${widget.lastName}",
+                  ),
+                  _summaryRow(
+                    Icons.cake_outlined,
+                    "Age",
+                    "${a['patientAge'] ?? '—'} yrs",
+                  ),
+                  _summaryRow(
+                    Icons.phone_outlined,
+                    "Contact",
+                    a['patientContact'] ?? widget.contactNo,
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildSectionHeader("Service Details"),
+                  const SizedBox(height: 8),
+                  _summaryRow(
+                    Icons.medical_services_outlined,
+                    "Service",
+                    a['service'] ?? "—",
+                    highlight: true,
+                  ),
+                  _summaryRow(
+                    Icons.payments_outlined,
+                    "Price",
+                    a['price'] ?? "—",
+                    valColor: AppTheme.goldPrimary,
+                  ),
+                  _summaryRow(
+                    Icons.timer_outlined,
+                    "Duration",
+                    a['duration'] ?? "—",
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildSectionHeader("Schedule"),
+                  const SizedBox(height: 8),
+                  _summaryRow(
+                    Icons.calendar_today_outlined,
+                    "Date",
+                    a['date'] != null
+                        ? DateFormat('EEE, MMM d, yyyy').format(a['date'])
+                        : "—",
+                  ),
+                  _summaryRow(
+                    Icons.access_time_rounded,
+                    "Time",
+                    _fmtTime(a['time'] ?? "—"),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildSectionHeader("Dentist"),
+                  const SizedBox(height: 8),
+                  _summaryRow(
+                    Icons.person_outline_rounded,
+                    "Name",
+                    a['doctor'] ?? "—",
+                  ),
+                  _summaryRow(
+                    Icons.work_outline_rounded,
+                    "Specialty",
+                    a['specialty'] ?? "—",
+                  ),
+
+                  if (a['confirmationCode'] != null) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: innerSurface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppTheme.goldPrimary.withOpacity(0.4),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            "CONFIRMATION CODE",
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: inkMuted,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            a['confirmationCode'],
+                            style: GoogleFonts.dmSans(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.goldPrimary,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            gradient: goldGradient,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.dmSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: ink,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryRow(
+    IconData icon,
+    String label,
+    String val, {
+    Color? valColor,
+    bool highlight = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: highlight ? innerSurface : innerSurface.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: highlight
+                  ? Border.all(color: AppTheme.goldPrimary.withOpacity(0.3))
+                  : null,
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: highlight ? AppTheme.goldPrimary : inkMuted,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: highlight ? ink : inkMuted,
+                fontWeight: highlight ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: valColor != null
+                  ? valColor.withOpacity(0.1)
+                  : innerSurface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              val,
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: valColor ?? ink,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  void _reschedule(Map a) {
-    DateTime m = DateTime(a['date'].year, a['date'].month);
-    DateTime? d = a['date'];
-    String? t = a['time'];
+  // ── ACTION BUTTONS: Reusable text-only buttons for canceling/rescheduling. ──
+  Widget _actionButton({
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    bool outlined = false,
+    Gradient? gradient,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: outlined
+              ? Colors.transparent
+              : (gradient == null ? color : null),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: outlined ? color.withOpacity(0.5) : Colors.transparent,
+          ),
+          gradient: outlined
+              ? null
+              : (gradient ??
+                    LinearGradient(colors: [color, color.withOpacity(0.8)])),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: outlined ? color : Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── RESCHEDULE MODAL: Opens a bottom sheet with a calendar to pick a new date/time. ──
+  void _showReschedule(Map<String, dynamic> a) {
+    DateTime sheetMonth = a['date'] as DateTime;
+    DateTime? sheetDate = a['date'] as DateTime;
+    String? sheetTime = a['time'] as String?;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => StatefulBuilder(
-        builder: (ctx, setS) => Container(
-          height: MediaQuery.of(context).size.height * 0.85,
+        builder: (ctx, setSheet) => Container(
+          height: MediaQuery.of(context).size.height * 0.88,
           decoration: BoxDecoration(
-            color: card,
+            color: cardBg,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
@@ -530,77 +1310,140 @@ class _CalendarScreenState extends State<CalendarScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: border,
+                  color: bdr,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Change Schedule',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: text,
-                  ),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: innerSurface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.goldPrimary.withOpacity(0.3),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.edit_calendar_rounded,
+                        color: AppTheme.goldPrimary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Reschedule",
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            color: ink,
+                          ),
+                        ),
+                        Text(
+                          a['service'] ?? '',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: inkMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 20),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
                     Text(
-                      'Select Date',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: textMuted,
+                      "Select New Date",
+                      style: GoogleFonts.dmSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: ink,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _miniCalendar(
-                      m,
-                      d,
-                      (newD) => setS(() => d = newD),
-                      (newM) => setS(() => m = newM),
+                    _sheetCalendar(
+                      sheetMonth,
+                      sheetDate,
+                      (d) => setSheet(() => sheetDate = d),
+                      (m) => setSheet(() => sheetMonth = m),
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Available Times',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: textMuted,
+                      "Select Time",
+                      style: GoogleFonts.dmSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: ink,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _miniTimeGrid(t, (newT) => setS(() => t = newT)),
+                    _sheetTimeGrid(
+                      sheetTime,
+                      (t) => setSheet(() => sheetTime = t),
+                    ),
                   ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(24),
-                child: ElevatedButton(
-                  onPressed: (d != null && t != null)
-                      ? () {
-                          setState(() {
-                            a['date'] = d;
-                            a['time'] = t;
-                          });
-                          widget.onReschedule(null, null, null); // Refresh Home
-                          Navigator.pop(ctx);
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: goldDark,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'CONFIRM CHANGES',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  MediaQuery.of(context).padding.bottom + 20,
+                ),
+                child: AnimatedOpacity(
+                  opacity: (sheetDate != null && sheetTime != null)
+                      ? 1.0
+                      : 0.45,
+                  duration: const Duration(milliseconds: 200),
+                  child: GestureDetector(
+                    onTap: (sheetDate != null && sheetTime != null)
+                        ? () {
+                            HapticFeedback.mediumImpact();
+                            setState(() {
+                              a['date'] = sheetDate;
+                              a['time'] = sheetTime;
+                            });
+                            widget.onReschedule(null, sheetDate, sheetTime);
+                            Navigator.pop(ctx);
+                            _showSuccessSnack("Appointment rescheduled!");
+                          }
+                        : null,
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        gradient: goldGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.goldPrimary.withOpacity(0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Confirm Changes",
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -612,141 +1455,336 @@ class _CalendarScreenState extends State<CalendarScreen>
     );
   }
 
-  Widget _miniCalendar(
-    DateTime m,
-    DateTime? d,
+  Widget _sheetCalendar(
+    DateTime month,
+    DateTime? selected,
     Function(DateTime) onSel,
     Function(DateTime) onMonth,
-  ) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: surface,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () => onMonth(DateTime(m.year, m.month - 1)),
-            ),
-            Text(
-              '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m.month - 1]} ${m.year}',
-              style: TextStyle(fontWeight: FontWeight.bold, color: goldDark),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: () => onMonth(DateTime(m.year, m.month + 1)),
-            ),
-          ],
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-          ),
-          itemCount:
-              DateTime(m.year, m.month + 1, 0).day +
-              DateTime(m.year, m.month, 1).weekday -
-              1,
-          itemBuilder: (_, i) {
-            final first = DateTime(m.year, m.month, 1).weekday - 1;
-            if (i < first) return const SizedBox();
-            final dy = i - first + 1, date = DateTime(m.year, m.month, dy);
-            final sel = d?.day == dy && d?.month == m.month;
-            return GestureDetector(
-              onTap: () => onSel(date),
-              child: Container(
-                margin: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: sel ? goldDark : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+  ) {
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    final firstOffset = (month.weekday - 1) % 7;
+    final today = DateTime.now();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: bdr),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _navBtn(
+                Icons.chevron_left_rounded,
+                () => onMonth(DateTime(month.year, month.month - 1)),
+              ),
+              Text(
+                DateFormat('MMMM yyyy').format(month),
+                style: GoogleFonts.dmSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: ink,
                 ),
-                child: Center(
-                  child: Text(
-                    '$dy',
-                    style: TextStyle(
-                      color: sel ? Colors.white : text,
-                      fontSize: 12,
+              ),
+              _navBtn(
+                Icons.chevron_right_rounded,
+                () => onMonth(DateTime(month.year, month.month + 1)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+                .map(
+                  (d) => Expanded(
+                    child: Center(
+                      child: Text(
+                        d,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: inkMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          GridView.builder(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisExtent: 38,
+              mainAxisSpacing: 2,
+            ),
+            itemCount: firstOffset + daysInMonth,
+            itemBuilder: (_, i) {
+              if (i < firstOffset) return const SizedBox();
+              final day = i - firstOffset + 1;
+              final date = DateTime(month.year, month.month, day);
+              final isPast = date.isBefore(
+                DateTime(today.year, today.month, today.day),
+              );
+              final isSunday = date.weekday == DateTime.sunday;
+              final disabled = isPast || isSunday;
+              final isSel =
+                  selected != null &&
+                  selected.year == date.year &&
+                  selected.month == date.month &&
+                  selected.day == date.day;
+              final isToday =
+                  date.year == today.year &&
+                  date.month == today.month &&
+                  date.day == today.day;
+              return GestureDetector(
+                onTap: disabled
+                    ? null
+                    : () {
+                        HapticFeedback.selectionClick();
+                        onSel(date);
+                      },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    gradient: isSel ? goldGradient : null,
+                    color: isSel
+                        ? null
+                        : isToday
+                        ? innerSurface
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: isToday && !isSel
+                        ? Border.all(
+                            color: AppTheme.goldPrimary.withOpacity(0.5),
+                          )
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      "$day",
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        fontWeight: isSel || isToday
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: isSel
+                            ? Colors.white
+                            : disabled
+                            ? inkMuted.withOpacity(0.4)
+                            : ink,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-      ],
-    ),
-  );
-
-  Widget _miniTimeGrid(String? currentT, Function(String) onSel) => Wrap(
-    spacing: 10,
-    runSpacing: 10,
-    children: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'].map((
-      time,
-    ) {
-      final sel = currentT == time;
-      return GestureDetector(
-        onTap: () => onSel(time),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: sel ? goldDark : surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: sel ? goldLight : border),
+              );
+            },
           ),
-          child: Text(
-            _fmtTime(time),
-            style: TextStyle(
-              color: sel ? Colors.white : text,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+        ],
+      ),
+    );
+  }
+
+  // ── TIME SELECTION GRID: Shows available time slots in a grid for the selected date. ──
+  Widget _sheetTimeGrid(String? current, Function(String) onSel) {
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisExtent: 44,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+      ),
+      itemCount: _rescheduleSlots.length,
+      itemBuilder: (_, i) {
+        final t = _rescheduleSlots[i];
+        final sel = current == t;
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onSel(t);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              gradient: sel ? goldGradient : null,
+              color: sel ? null : cardBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: sel ? AppTheme.goldPrimary : bdr,
+                width: sel ? 1.5 : 1,
+              ),
+              boxShadow: sel
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.goldPrimary.withOpacity(0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Center(
+              child: Text(
+                _fmtTime(t),
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: sel ? Colors.white : ink,
+                ),
+              ),
             ),
           ),
-        ),
-      );
-    }).toList(),
-  );
+        );
+      },
+    );
+  }
 
-  void _cancel(Map a) => showDialog(
-    context: context,
-    builder: (_) => AlertDialog(
-      backgroundColor: card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: const Text('Cancel Appointment?'),
-      content: const Text('This action cannot be undone.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('No, Keep It', style: TextStyle(color: textMuted)),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            setState(() => a['status'] = 'cancelled');
-            widget.onReschedule(null, null, null); // Refresh Home
-            Navigator.pop(context);
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: danger),
-          child: const Text(
-            'Yes, Cancel',
-            style: TextStyle(color: Colors.white),
+  // ── CANCELLATION DIALOG: Prompts the user to confirm before changing status to cancelled. ──
+  void _showCancelDialog(Map<String, dynamic> a) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: bdr),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: dangerRed.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.cancel_outlined, color: dangerRed, size: 28),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Cancel Appointment?",
+                style: GoogleFonts.dmSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  color: ink,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Are you sure you want to cancel your ${a['service']} appointment on ${_fmtDate(a['date'] as DateTime)}?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: inkMuted,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: innerSurface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: bdr),
+                        ),
+                        child: Center(
+                          child: Text(
+                            "Keep It",
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              color: ink,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        setState(() => a['status'] = 'cancelled');
+                        widget.onReschedule(null, null, null);
+                        Navigator.pop(context);
+                        _showSuccessSnack("Appointment cancelled.");
+                      },
+                      child: Container(
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: dangerRed,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            "Yes, Cancel",
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
-  String _fmtTime(String t) {
-    if (t.isEmpty) return '';
-    final p = t.split(':');
-    final h = int.parse(p[0]), m = int.parse(p[1]);
-    return '${h > 12
-        ? h - 12
-        : h == 0
-        ? 12
-        : h}:${m.toString().padLeft(2, '0')} ${h >= 12 ? 'PM' : 'AM'}';
+  // ── SNACKBAR: Shows a small pop-up notification at the bottom after action success. ──
+  void _showSuccessSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              msg,
+              style: GoogleFonts.dmSans(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart'; // ── REPLACED WEBVIEW WITH THIS ──
 
 class AboutClinicScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -26,18 +28,51 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
     }
   }
 
-  final Color goldPrimary = const Color(0xFFD4AF37);
-  final Color goldDark = const Color(0xFFA67C00);
-  final Color goldLight = const Color(0xFFF9E4B7);
+  // ── EXACT PALETTE & SHADOWS ──
+  static const Color _cardWhite = Color(0xFFFFFFFF);
+  static const Color _inputCream = Color(0xFFFAF6EE);
+  static const Color _goldDeep = Color(0xFFB88A44);
+  static const Color _goldMid = Color(0xFFD4AF37);
+  static const Color _goldShine = Color(0xFFF0D86C);
+  static const Color _goldPrimary = Color(0xFFB59410);
+  static const Color _textDark = Color(0xFF2C2410);
+  static const Color _textMuted = Color(0xFF8A7A5A);
 
-  Color get bg => isDark ? const Color(0xFF0F172A) : Colors.white;
-  Color get cardColor =>
-      isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
-  Color get textColor => isDark ? Colors.white : const Color(0xFF1E293B);
-  Color get textMutedColor =>
-      isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-  Color get borderColor =>
-      isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+  Color get bg => isDark ? const Color(0xFF1A160F) : const Color(0xFFF9F9F9);
+  Color get cardBg => isDark ? const Color(0xFF262016) : _cardWhite;
+  Color get innerSurface => isDark ? const Color(0xFF332B1E) : _inputCream;
+  Color get ink => isDark ? _inputCream : _textDark;
+  Color get inkMuted => isDark ? const Color(0xFFA6967A) : _textMuted;
+  Color get bdr =>
+      isDark ? const Color(0xFF403626) : _goldMid.withOpacity(0.20);
+
+  LinearGradient get goldGradient => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [_goldDeep, _goldMid, _goldShine, _goldMid],
+    stops: [0.0, 0.35, 0.65, 1.0],
+  );
+
+  List<BoxShadow> get profileShadow => [
+    BoxShadow(
+      color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+      blurRadius: 15,
+      offset: const Offset(0, 5),
+    ),
+  ];
+
+  // ── GOOGLE MAPS LAUNCHER FUNCTION ──
+  Future<void> _openGoogleMaps() async {
+    // This URL searches for your exact location
+    final Uri mapUrl = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=Gaisano+Grand+Mall+Liloan+Cebu',
+    );
+
+    // Launch Mode externalApplication forces it to open the Maps App or Browser
+    if (!await launchUrl(mapUrl, mode: LaunchMode.externalApplication)) {
+      debugPrint('Could not launch map');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,33 +83,34 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: goldDark),
+          icon: const Icon(Icons.arrow_back_rounded, color: _goldPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'About Clinic',
-          style: TextStyle(color: textColor, fontWeight: FontWeight.w900),
+          style: GoogleFonts.dmSans(
+            color: ink,
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+          ),
         ),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 60),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── 🏆 PREMIUM HERO BANNER (White Badge & Centered Gold Logo) ──
+            // ── 🏆 PREMIUM HERO BANNER ──
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [goldPrimary, goldDark],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: goldGradient,
                 borderRadius: BorderRadius.circular(36),
                 boxShadow: [
                   BoxShadow(
-                    color: goldDark.withOpacity(0.35),
+                    color: _goldDeep.withOpacity(0.35),
                     blurRadius: 24,
                     offset: const Offset(0, 10),
                   ),
@@ -85,7 +121,6 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
                   Container(
                     width: 110,
                     height: 110,
-                    // Padding creates the "frame" around your logo
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -99,52 +134,32 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
                       ],
                     ),
                     child: Image.asset(
-                      'assets/clinic_logo.png', // Ensure this is a transparent PNG
-                      fit: BoxFit.contain, // Fits perfectly within the padding
+                      'assets/clinic_logo.png',
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.medical_services_rounded,
-                        color: Color(0xFFA67C00),
+                        color: _goldPrimary,
                         size: 40,
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'SMILE ART',
-                    style: TextStyle(
+                    style: GoogleFonts.cinzel(
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const Text(
-                    'DENTAL CLINIC',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
                       letterSpacing: 4,
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'DENTAL • ORTHO • COSMETIC',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                      ),
+                  Text(
+                    'DENTAL CLINIC',
+                    style: GoogleFonts.dmSans(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 5,
                     ),
                   ),
                 ],
@@ -160,15 +175,17 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: cardColor,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: borderColor),
+                border: Border.all(color: bdr),
+                boxShadow: profileShadow,
               ),
               child: Text(
                 'Smile Art Dental Clinic is dedicated to quality dental care with modern technology, personalized treatment plans, and compassionate patient service. We believe every patient deserves a masterpiece smile.',
-                style: TextStyle(
-                  color: textMutedColor,
+                style: GoogleFonts.dmSans(
+                  color: inkMuted,
                   fontSize: 14,
+                  fontWeight: FontWeight.w500,
                   height: 1.6,
                 ),
               ),
@@ -195,59 +212,58 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
 
             const SizedBox(height: 32),
 
-            // ── OPERATING HOURS ──
-            _sectionHeader('Operating Hours'),
+            // ── CLICKABLE MAP BUTTON ──
+            _sectionHeader('Our Location'),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: goldPrimary.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: goldLight.withOpacity(0.5)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Open Daily (Mon-Sun)',
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+            GestureDetector(
+              onTap: _openGoogleMaps, // Opens the map when clicked!
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: innerSurface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: bdr),
+                  boxShadow: profileShadow,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _goldPrimary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.map_rounded,
+                        color: _goldPrimary,
+                        size: 40,
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: goldPrimary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '10:00 AM - 7:00 PM',
-                      style: TextStyle(
-                        color: goldDark,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
+                    const SizedBox(height: 16),
+                    Text(
+                      'Open in Google Maps',
+                      style: GoogleFonts.dmSans(
+                        color: ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tap here to view directions to\nGaisano Grand Mall, Liloan',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        color: inkMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // ──  DOCTORS──
-            _sectionHeader('Meet Our Specialists'),
-            const SizedBox(height: 12),
-            _docCard('Dr. Justine Illustrisimo', 'Lead Orthodontist'),
-            _docCard('Dr. Sarah Smith', 'General Dentist'),
-            _docCard('Dr. Michael Chen', 'Oral Surgeon'),
-            _docCard('Dr. Maria Santos', 'Prosthodontist'),
 
             const SizedBox(height: 40),
           ],
@@ -257,36 +273,46 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
   }
 
   // ── HELPER WIDGETS ──
-  Widget _sectionHeader(String title) => Align(
-    alignment: Alignment.centerLeft,
-    child: Text(
-      title,
-      style: TextStyle(
-        color: textColor,
-        fontSize: 18,
-        fontWeight: FontWeight.w900,
-        letterSpacing: -0.5,
+  Widget _sectionHeader(String title) => Row(
+    children: [
+      Container(
+        width: 4,
+        height: 18,
+        decoration: BoxDecoration(
+          gradient: goldGradient,
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
-    ),
+      const SizedBox(width: 8),
+      Text(
+        title,
+        style: GoogleFonts.dmSans(
+          fontWeight: FontWeight.w900,
+          fontSize: 17,
+          color: ink,
+        ),
+      ),
+    ],
   );
 
   Widget _infoCard(IconData icon, String title, String desc) => Container(
     margin: const EdgeInsets.only(bottom: 4),
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: cardColor,
+      color: cardBg,
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: borderColor),
+      border: Border.all(color: bdr),
+      boxShadow: profileShadow,
     ),
     child: Row(
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: goldPrimary.withOpacity(0.1),
+            color: innerSurface,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(icon, color: goldDark, size: 24),
+          child: Icon(icon, color: _goldPrimary, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -295,68 +321,25 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.dmSans(
+                  color: ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 desc,
-                style: TextStyle(
-                  color: textMutedColor,
+                style: GoogleFonts.dmSans(
+                  color: inkMuted,
                   fontSize: 13,
+                  fontWeight: FontWeight.w500,
                   height: 1.4,
                 ),
               ),
             ],
           ),
         ),
-      ],
-    ),
-  );
-
-  Widget _docCard(String n, String s) => Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: borderColor),
-    ),
-    child: Row(
-      children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: goldPrimary.withOpacity(0.1),
-          child: Text(
-            n.split(' ').last[0],
-            style: TextStyle(
-              color: goldDark,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                n,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Text(s, style: TextStyle(color: textMutedColor, fontSize: 13)),
-            ],
-          ),
-        ),
-        Icon(Icons.stars_rounded, color: goldPrimary, size: 20),
       ],
     ),
   );
