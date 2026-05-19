@@ -183,7 +183,7 @@ class _AboutClinicScreenState extends State<AboutClinicScreen> {
                 boxShadow: profileShadow,
               ),
               child: Text(
-                'Smile Art Dental Clinic is dedicated to quality dental care with modern technology, personalized treatment plans, and compassionate patient service. We believe every patient deserves a masterpiece smile.',
+                'At Smile Art Dental x Diagnostics, we are dedicated to creating healthy, confident smiles through high-quality dental care and personalized service. Our clinic was founded with the goal of providing a comfortable and welcoming environment where patients of all ages can receive the treatment they need with trust and ease. We believe that dental health plays a vital role in overall well-being. That’s why our team is committed to using modern technology, safe procedures, and evidence-based practices to deliver effective and long-lasting results. Whether you’re visiting for a routine check-up, cosmetic enhancement, or specialized treatment, we ensure every patient receives attentive and compassionate care. Our skilled dental professionals take the time to understand your needs, explain procedures clearly, and guide you through every step of your dental journey. We aim to build lasting relationships with our patients by promoting preventive care and educating you on maintaining your oral health. At Smile Art Dental x Diagnotics, your smile is our priority',
                 style: GoogleFonts.dmSans(
                   color: inkMuted,
                   fontSize: 14,

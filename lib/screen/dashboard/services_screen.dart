@@ -5,6 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+// ── ADDED NETWORK IMPORTS ──
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'app_theme.dart';
 
 // ── DATA MODELS: Blueprints for ClinicService and DentistInfo objects. ──
@@ -39,6 +43,7 @@ class DentistInfo {
 class ServicesScreen extends StatefulWidget {
   final List<Map<String, dynamic>> appointments;
   final Function(Map<String, dynamic>) onBookAppointment;
+  final VoidCallback onGoHome;
   final String patientName, firstName, lastName, contactNo;
   final bool isDarkMode;
 
@@ -46,6 +51,7 @@ class ServicesScreen extends StatefulWidget {
     super.key,
     required this.appointments,
     required this.onBookAppointment,
+    required this.onGoHome,
     required this.patientName,
     required this.firstName,
     required this.lastName,
@@ -68,6 +74,7 @@ class ServicesScreenState extends State<ServicesScreen>
   // ── STATE VARIABLES: Tracks current step and search inputs. ──
   int _currentStep = 0;
   String _searchQuery = '';
+  bool isSubmitting = false; // ── ADDED LOADING STATE ──
 
   // ── PATIENT DETAIL CONTROLLERS: Text controllers for Step 4 patient info. ──
   final TextEditingController _fullNameCtrl = TextEditingController();
@@ -210,7 +217,6 @@ class ServicesScreenState extends State<ServicesScreen>
         "Braces Adjustment",
         "Root Canal Treatment",
         "Teeth Bleaching",
-        "Wisdom Tooth Extraction",
         "Dentures",
         "Dental Crown/Jacket",
         "Dental Bridge",
@@ -235,17 +241,46 @@ class ServicesScreenState extends State<ServicesScreen>
       ],
       "assets/clyde.png",
     ),
+    DentistInfo(
+      "ericka",
+      "Dr. Ericka Lee",
+      "General Dentist",
+      "Provides comprehensive dental care with a gentle touch, focusing on patient comfort and long-term oral health.",
+      [
+        "Consultation",
+        "Panoramic X-ray",
+        "Tooth Extraction",
+        "Cleaning",
+        "Dental Filling",
+        "Teeth Bleaching",
+        "Wisdom Tooth Extraction",
+        "Dentures",
+        "Dental Crown/Jacket",
+        "Dental Bridge",
+      ],
+      "assets/ericka.png",
+    ),
   ];
 
   final List<String> _timeSlots = const [
-    "08:00 AM",
-    "09:00 AM",
     "10:00 AM",
+    "10:30 AM",
     "11:00 AM",
+    "11:30 AM",
+    "12:00 PM",
+    "12:30 PM",
     "01:00 PM",
+    "01:30 PM",
     "02:00 PM",
+    "02:30 PM",
     "03:00 PM",
+    "03:30 PM",
     "04:00 PM",
+    "04:30 PM",
+    "05:00 PM",
+    "05:30 PM",
+    "06:00 PM",
+    "06:30 PM",
   ];
 
   // ── BOOKING SELECTION VARIABLES: Stores the user's specific choices during the booking process. ──
@@ -1967,7 +2002,7 @@ class ServicesScreenState extends State<ServicesScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  "Please arrive 10 minutes early. Bring a valid ID and dental records if available.",
+                  "Please arrive 10 minutes early.\nBring a valid ID and dental records if available.",
                   style: GoogleFonts.dmSans(
                     fontSize: 12,
                     color: ink,
@@ -1980,26 +2015,76 @@ class ServicesScreenState extends State<ServicesScreen>
           ),
         ),
         const SizedBox(height: 24),
+
+        // ── UPDATED HTTP POST SUBMIT BUTTON ──
         GestureDetector(
-          onTap: () {
-            HapticFeedback.mediumImpact();
+          onTap: isSubmitting
+              ? null
+              : () async {
+                  HapticFeedback.mediumImpact();
+                  setState(() => isSubmitting = true);
 
-            widget.onBookAppointment({
-              'service': selectedService!.name,
-              'doctor': selectedDentist!.name,
-              'date': selectedDate!,
-              'time': _timeToStorage(selectedTime!),
-              'status': 'pending',
-              'price': selectedService!.price,
-              'duration': selectedService!.duration,
-              'specialty': selectedDentist!.specialty,
-              'patientName': _fullNameCtrl.text.trim(),
-              'patientAge': _ageCtrl.text.trim(),
-              'patientContact': _contactCtrl.text.trim(),
-            });
+                  try {
+                    //  POINTING TO HTTP PORT 5207
+                    final url = Uri.parse(
+                      'http://10.119.199.210:5000/Appointment',
+                    );
 
-            _nextStep();
-          },
+                    final appointmentData = {
+                      'service': selectedService!.name,
+                      'doctor': selectedDentist!.name,
+                      'date': selectedDate!.toIso8601String(),
+                      'time': _timeToStorage(selectedTime!),
+                      'status': 'pending',
+                      'price': selectedService!.price,
+                      'duration': selectedService!.duration,
+                      'specialty': selectedDentist!.specialty,
+                      'patientName': _fullNameCtrl.text.trim(),
+                      'patientAge': _ageCtrl.text.trim(),
+                      'patientContact': _contactCtrl.text.trim(),
+                    };
+
+                    final response = await http.post(
+                      url,
+                      headers: {"Content-Type": "application/json"},
+                      body: jsonEncode(appointmentData),
+                    );
+
+                    if (!mounted) return;
+
+                    if (response.statusCode == 200 ||
+                        response.statusCode == 201) {
+                      // Keep the local callback to instantly update the UI
+                      widget.onBookAppointment(appointmentData);
+
+                      // Navigate to the Success Screen
+                      _nextStep();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to book. Please try again.',
+                            style: GoogleFonts.dmSans(),
+                          ),
+                          backgroundColor: Colors.redAccent.shade200,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Connection error. Is the API running?',
+                          style: GoogleFonts.dmSans(),
+                        ),
+                        backgroundColor: Colors.redAccent.shade200,
+                      ),
+                    );
+                  } finally {
+                    if (mounted) setState(() => isSubmitting = false);
+                  }
+                },
           child: Container(
             height: 60,
             decoration: BoxDecoration(
@@ -2014,25 +2099,34 @@ class ServicesScreenState extends State<ServicesScreen>
               ],
             ),
             child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.check_circle_outline_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    "Submit Booking Request",
-                    style: GoogleFonts.dmSans(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Submit Booking Request",
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
@@ -2153,7 +2247,7 @@ class ServicesScreenState extends State<ServicesScreen>
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          "Your appointment is currently pending. Once the dentist approves it, you will receive a notification with your confirmation code.",
+                          "Your appointment is currently pending.\nOnce the dentist approves it, you will receive a notification with your confirmation code.",
                           textAlign: TextAlign.center,
                           style: GoogleFonts.dmSans(
                             fontSize: 14,
@@ -2192,6 +2286,32 @@ class ServicesScreenState extends State<ServicesScreen>
                     "Book Another Appointment",
                     style: GoogleFonts.dmSans(
                       color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _resetBooking();
+                widget.onGoHome();
+              },
+              child: Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  color: innerSurface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: bdr),
+                ),
+                child: Center(
+                  child: Text(
+                    "Back to Home",
+                    style: GoogleFonts.dmSans(
+                      color: ink,
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                     ),

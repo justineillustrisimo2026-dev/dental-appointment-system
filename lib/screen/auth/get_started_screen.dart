@@ -237,6 +237,7 @@ class _GetStartedScreenState extends State<GetStartedScreen>
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
+                                  // ignore: deprecated_member_use
                                   color: Colors.white.withOpacity(0.4),
                                   shape: BoxShape.circle,
                                 ),
@@ -283,6 +284,7 @@ class PerfectGoldPainter extends CustomPainter {
       ..shader = gradient.createShader(fullRect)
       ..style = PaintingStyle.fill
       ..colorFilter = ColorFilter.mode(
+        // ignore: deprecated_member_use
         Colors.white.withOpacity(0.6),
         BlendMode.modulate,
       );

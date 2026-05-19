@@ -6,10 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
+// ── ADDED NETWORK IMPORTS ──
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 class ProfileScreen extends StatefulWidget {
   final String patientName, firstName, lastName, contactNo;
 
-  // ── ADDED: Pass Image state up and down to sync with Dashboard ──
   final Uint8List? profileImageBytes;
   final Function(Uint8List?)? onImageChanged;
   final Function(bool)? onThemeChanged;
@@ -20,8 +23,8 @@ class ProfileScreen extends StatefulWidget {
     required this.firstName,
     required this.lastName,
     required this.contactNo,
-    this.profileImageBytes, // ── ADDED ──
-    this.onImageChanged, // ── ADDED ──
+    this.profileImageBytes,
+    this.onImageChanged,
     this.onThemeChanged,
   });
 
@@ -32,10 +35,10 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   bool _isEditing = false;
-  bool _obscurePassword = true;
+  bool _isSaving = false; // Tracks API request status
   late bool _isDarkMode;
 
-  late TextEditingController _usernameCtrl, _passwordCtrl, _contactCtrl;
+  late TextEditingController _usernameCtrl, _contactCtrl;
 
   Uint8List? _profileImageBytes;
   final ImagePicker _picker = ImagePicker();
@@ -46,7 +49,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   static const Color _goldDeep = Color(0xFFB88A44);
   static const Color _goldShine = Color(0xFFF0D86C);
 
-  // Exact dark mode colors matching the Login Screen
   bool get isDark => _isDarkMode;
   Color get bg => isDark ? const Color(0xFF1A160F) : const Color(0xFFF9F9F9);
   Color get cardBg => isDark ? const Color(0xFF262016) : Colors.white;
@@ -57,7 +59,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       isDark ? const Color(0xFFA6967A) : const Color(0xFF8A7A5A);
   Color get bdr =>
       isDark ? const Color(0xFF403626) : _goldMid.withOpacity(0.20);
-
   LinearGradient get goldGradient => const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -69,24 +70,19 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
     _isDarkMode = false;
-
-    // ── ADDED: Initialize the image if already picked ──
     _profileImageBytes = widget.profileImageBytes;
 
     _usernameCtrl = TextEditingController(text: widget.patientName);
-    _passwordCtrl = TextEditingController(text: '********');
     _contactCtrl = TextEditingController(text: widget.contactNo);
   }
 
   @override
   void dispose() {
     _usernameCtrl.dispose();
-    _passwordCtrl.dispose();
     _contactCtrl.dispose();
     super.dispose();
   }
 
-  // ── 100% WORKING IMAGE PICKER: Converts directly to memory bytes ──
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -96,12 +92,84 @@ class _ProfileScreenState extends State<ProfileScreen>
       final bytes = await image.readAsBytes();
       setState(() => _profileImageBytes = bytes);
 
-      // ── ADDED: Send the new image up to the Dashboard! ──
       if (widget.onImageChanged != null) {
         widget.onImageChanged!(bytes);
       }
 
       HapticFeedback.mediumImpact();
+    }
+  }
+
+  // ── UPDATED HTTP UPDATE LOGIC BASED ON SWAGGER ──
+  Future<void> _updateProfile() async {
+    if (_usernameCtrl.text.trim().isEmpty || _contactCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Fields cannot be empty', style: GoogleFonts.dmSans()),
+          backgroundColor: Colors.redAccent.shade200,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    HapticFeedback.lightImpact();
+
+    try {
+      // Pointing directly to the PUT /Patient endpoint seen in your Swagger UI
+      final url = Uri.parse('http://10.119.199.210:5000/Patient');
+
+      final response = await http.put(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          // Make sure these property names perfectly match your C# Patient DTO!
+          "patientName": widget.patientName,
+          "username": _usernameCtrl.text.trim(),
+          "contactNumber": _contactCtrl.text.trim(),
+        }),
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        setState(() => _isEditing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Profile updated successfully!',
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to update. Error: ${response.statusCode}',
+              style: GoogleFonts.dmSans(),
+            ),
+            backgroundColor: Colors.redAccent.shade200,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Connection error. Is the API running?',
+            style: GoogleFonts.dmSans(),
+          ),
+          backgroundColor: Colors.redAccent.shade200,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -180,11 +248,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                     TextInputType.phone,
                   ),
                   Divider(height: 1, color: bdr, indent: 64),
-                  _passwordRow(),
+                  _row(
+                    Icons.lock_outline_rounded,
+                    'Password',
+                    '••••••••',
+                    true,
+                  ),
                 ]),
                 const SizedBox(height: 32),
 
-                // ── GENERAL SETTINGS: ONLY DARK MODE ──
                 _sectionLabel('General Settings'),
                 const SizedBox(height: 12),
                 _buildCard([_darkModeToggle()]),
@@ -236,7 +308,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     ),
     child: Column(
       children: [
-        // ── UPDATED AVATAR: Rendered cleanly with memory bytes ──
         Container(
           width: 110,
           height: 110,
@@ -295,7 +366,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         const SizedBox(height: 24),
 
-        // ── SET PHOTO & EDIT BUTTONS ──
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -381,7 +451,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     child: Column(children: children),
   );
 
-  // ── ONLY DARK MODE TOGGLE ──
   Widget _darkModeToggle() => Padding(
     padding: const EdgeInsets.all(16),
     child: Row(
@@ -455,7 +524,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _isEditing = false),
+              onTap: () {
+                // Revert changes if they cancel
+                _usernameCtrl.text = widget.patientName;
+                _contactCtrl.text = widget.contactNo;
+                setState(() => _isEditing = false);
+              },
               child: Container(
                 height: 56,
                 decoration: BoxDecoration(
@@ -479,7 +553,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           Expanded(
             flex: 2,
             child: GestureDetector(
-              onTap: () => setState(() => _isEditing = false),
+              onTap: _isSaving
+                  ? null
+                  : _updateProfile, // ── TRIGGERS HTTP CALL ──
               child: Container(
                 height: 56,
                 decoration: BoxDecoration(
@@ -487,13 +563,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
-                  child: Text(
-                    'Save Changes',
-                    style: GoogleFonts.dmSans(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : Text(
+                          'Save Changes',
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -613,62 +698,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
           ),
         ),
-      ],
-    ),
-  );
-
-  Widget _passwordRow() => Padding(
-    padding: const EdgeInsets.all(16),
-    child: Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: innerSurface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.lock_outline_rounded, color: inkMuted, size: 20),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Password',
-                style: GoogleFonts.dmSans(fontSize: 12, color: inkMuted),
-              ),
-              _isEditing
-                  ? TextField(
-                      controller: _passwordCtrl,
-                      obscureText: _obscurePassword,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                      ),
-                    )
-                  : Text(
-                      '••••••••',
-                      style: GoogleFonts.dmSans(
-                        color: ink,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
-                      ),
-                    ),
-            ],
-          ),
-        ),
-        if (_isEditing)
-          IconButton(
-            icon: Icon(
-              _obscurePassword ? Icons.visibility_off : Icons.visibility,
-              color: _goldPrimary,
-            ),
-            onPressed: () =>
-                setState(() => _obscurePassword = !_obscurePassword),
-          ),
       ],
     ),
   );

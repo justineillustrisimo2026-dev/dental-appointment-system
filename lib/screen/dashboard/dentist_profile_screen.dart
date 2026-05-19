@@ -1,5 +1,4 @@
-// ignore_for_file: deprecated_member_use
-
+// ignore_for_file: deprecated_member_use, duplicate_ignore
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';

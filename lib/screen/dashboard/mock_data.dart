@@ -276,7 +276,7 @@ class MockData {
       'desc':
           'Dr. Ayunan is dedicated to providing personalized, high-quality dental care. With an expert background in advanced orthodontics, she ensures every patient achieves their masterpiece smile utilizing modern, pain-free techniques and precision care.',
       'services':
-          'Consultation, Panoramic X-ray, Tooth Extraction, Cleaning, Dental Filling, Braces Installation, Braces Adjustment, Root Canal, Teeth Bleaching, Wisdom Tooth, Dentures, Dental Crown, Dental Bridge',
+          'Consultation, Panoramic X-ray, Tooth Extraction, Cleaning, Dental Filling, Braces Installation, Braces Adjustment, Root Canal, Teeth Bleaching, Dentures, Dental Crown, Dental Bridge',
     },
     {
       'name': 'Dr. Clyde Cabahug',
@@ -286,6 +286,15 @@ class MockData {
           'Dr. Cabahug specializes in comprehensive general dentistry. With a gentle approach and a focus on preventative care, he is committed to maintaining optimal oral health for patients of all ages, ensuring a comfortable and stress-free experience.',
       'services':
           'Consultation, Panoramic X-ray, Tooth Extraction, Cleaning, Dental Filling, Teeth Bleaching, Dentures, Dental Crown, Dental Bridge',
+    },
+    {
+      'name': 'Dr. Ericka Lee',
+      'spec': 'Oral Surgeon',
+      'img': 'assets/ericka.png',
+      'desc':
+          'Dr. Lee provides comprehensive dental care with a gentle touch, focusing on patient comfort and long-term oral health.',
+      'services':
+          'Consultation, Panoramic X-ray, Tooth Extraction, Cleaning, Dental Filling, Teeth Bleaching, Wisdom Tooth, Dentures, Dental Crown, Dental Bridge',
     },
   ];
 

@@ -7,12 +7,14 @@
 
 # The following line activates a set of recommended lints for Flutter apps,
 # packages, and plugins designed to encourage good coding practices.
+analyzer:
+  errors:
+    duplicate_ignore: ignore
+    deprecated_member_use: ignore ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
+  # The lint rules applied to this project can be customized in thehynle lints
   # and their documentation is published at https://dart.dev/lints.
   #
   # Instead of disabling a lint rule for the entire project in the

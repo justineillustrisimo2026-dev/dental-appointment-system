@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_underscores, deprecated_member_use
 import 'dart:async';
+//import 'dart:typed_data'; // ── ADDED FOR MEMORY IMAGE SUPPORT ──
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -102,7 +103,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     _carouselTimer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
       if (_bannerPageCtrl.hasClients && !_searchFocus.hasFocus) {
         int next = _currentBanner + 1;
-        if (next > 3) next = 0;
+        // Loops back to the first banner (index 0) after the third banner (index 2)
+        if (next > 2) next = 0;
         _bannerPageCtrl.animateToPage(
           next,
           duration: const Duration(milliseconds: 800),
@@ -164,6 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               key: _servicesKey,
               appointments: appointments,
               onBookAppointment: (a) => _addAppt(a),
+              onGoHome: () => setState(() => _idx = 0),
               patientName: widget.patientName,
               firstName: widget.firstName,
               lastName: widget.lastName,
@@ -213,7 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           height: 70,
           color: bg.withOpacity(0.97),
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _isSearchActive
+          child: (_isSearchActive && _idx == 0)
               ? _buildActiveSearchBar()
               : Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -247,13 +250,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ],
                       ),
                     ),
-                    _iconBtn(Icons.search_rounded, () {
-                      setState(() {
-                        _isSearchActive = true;
-                      });
-                      _searchFocus.requestFocus();
-                    }),
-                    const SizedBox(width: 8),
+                    // Search button ONLY displays on the Home feed (idx 0)
+                    if (_idx == 0) ...[
+                      _iconBtn(Icons.search_rounded, () {
+                        setState(() {
+                          _isSearchActive = true;
+                        });
+                        _searchFocus.requestFocus();
+                      }),
+                      const SizedBox(width: 8),
+                    ],
                     _notifButton(),
                     const SizedBox(width: 8),
                     _iconBtn(
@@ -661,14 +667,14 @@ class _DashboardScreenState extends State<DashboardScreen>
             controller: _bannerPageCtrl,
             physics: const BouncingScrollPhysics(),
             onPageChanged: (idx) => setState(() => _currentBanner = idx),
-            itemCount: 4,
+            itemCount: 3, // Enforced ONLY 3 banners
             itemBuilder: (context, index) => _buildBannerCard(index),
           ),
         ),
         const SizedBox(height: 14),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(4, (index) {
+          children: List.generate(3, (index) {
             final active = _currentBanner == index;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -695,18 +701,13 @@ class _DashboardScreenState extends State<DashboardScreen>
     String targetServiceId = "";
     String imagePath = 'assets/Dr_krischelle.png';
 
+    // Exactly 3 Banners as requested
     if (index == 0) {
       title = '${_getGreeting()},\n${widget.firstName}!';
       sub = _getSubText();
       btnTxt = 'Book Appointment';
       imagePath = 'assets/Dr_krischelle.png';
     } else if (index == 1) {
-      title = 'Flash a\nBrighter Smile';
-      sub = 'Get 20% off on all teeth bleaching services this month.';
-      btnTxt = 'Claim Offer';
-      targetServiceId = 'bleaching';
-      imagePath = 'assets/smile1.png';
-    } else if (index == 2) {
       title = 'Achieve\nPerfect Alignment';
       sub = 'Explore our modern braces options for a confident look.';
       btnTxt = 'Learn More';
@@ -765,12 +766,28 @@ class _DashboardScreenState extends State<DashboardScreen>
                   onTap: () {
                     HapticFeedback.lightImpact();
                     if (index == 0) {
+                      // Banner 1: Opens Booking Wizard
                       setState(() => _idx = 1);
                     } else {
-                      _servicesKey.currentState?.setInitialService(
-                        targetServiceId,
+                      // Banners 2 & 3: Navigate directly to the detailed Service Page
+                      final serviceData = MockData.services.firstWhere(
+                        (s) => s['id'] == targetServiceId,
+                        orElse: () => MockData.services.first,
                       );
-                      setState(() => _idx = 1);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ServiceDetailsScreen(
+                            service: serviceData,
+                            isDarkMode: isDark,
+                          ),
+                        ),
+                      ).then((result) {
+                        if (result != null && result is String) {
+                          _servicesKey.currentState?.setInitialService(result);
+                          setState(() => _idx = 1);
+                        }
+                      });
                     }
                   },
                   child: Container(
@@ -867,6 +884,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── STATUS CARD USED IN STATS ROW FOR PENDING, UPCOMING, AND COMPLETED APPOINTMENTS ──
   Widget _statCard(String val, String label, IconData icon, Color color) =>
       Expanded(
         child: Container(
@@ -912,7 +930,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       );
 
-  // ── NEXT VISIT SECTION ──
+  // ── NEXT VISIT SECTION (PENDING AND UPCOMING APPOINTMENTS) ──
   Widget _upcomingSection() {
     final upcomingAndPending = appointments
         .where((a) => a['status'] == 'upcoming' || a['status'] == 'pending')
@@ -971,6 +989,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── PENDING AND UPCOMING APPOINTMENT CARD ──
   Widget _apptCard(Map<String, dynamic> a, {bool isCardInList = false}) {
     final DateTime? date = a['date'] as DateTime?;
     final String dateStr = date != null
@@ -1176,6 +1195,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── NEXT VISIT CARD FOR WHEN THERE ARE NO UPCOMING APPOINTMENTS ──
   Widget _emptyAppt() => Center(
     child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -1270,6 +1290,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── SERVICE CARD: Individual service preview with image and details. ──
   Widget _serviceFullCard(Map<String, dynamic> s) {
     return GestureDetector(
       onTap: () async {
@@ -1435,6 +1456,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.only(left: 20, right: 4),
+            // The length automatically checks mock_data.dart, including Dr. Ericka!
             itemCount: MockData.dentists.length,
             itemBuilder: (context, index) =>
                 _specialistCard(MockData.dentists[index]),
@@ -1444,6 +1466,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── SPECIALIST CARD: Individual dentist profile preview. ──
   Widget _specialistCard(Map<String, String> d) {
     return GestureDetector(
       onTap: () {
@@ -1457,7 +1480,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         );
       },
       child: Container(
-        width: 180,
+        width: 160,
         margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
           color: cardBg,
@@ -1550,7 +1573,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ── STAFF SECTION ──
+  // ── STAFF SECTION: Horizontal list of clinic support team. ──
   Widget _staffSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1574,6 +1597,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── STAFF CARD: Individual staff profile preview. ──
   Widget _staffCard(Map<String, String> s) {
     return GestureDetector(
       onTap: () {
@@ -1586,7 +1610,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         );
       },
       child: Container(
-        width: 190,
+        width: 160,
         margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
           color: cardBg,
@@ -1727,6 +1751,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         physics: const BouncingScrollPhysics(),
                         child: Text(
                           tip['d'] as String,
+                          // Exact typography match from Services descriptions, full text shown with no cut
                           style: GoogleFonts.dmSans(
                             color: txt.withOpacity(0.85),
                             fontSize: 16,
@@ -1853,6 +1878,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── NOTIFICATION ITEM: Individual notification row. ──
   Widget _notifItem(String emoji, String title, String desc, String time) =>
       Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -1930,7 +1956,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             return GestureDetector(
               onTap: () {
                 HapticFeedback.selectionClick();
-                setState(() => _idx = i);
+                setState(() {
+                  _idx = i;
+                  _isSearchActive = false; // Hide search if tab is changed
+                });
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
@@ -2192,6 +2221,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     ),
   );
 
+  // ── DRAWER ITEM ──
   Widget _drawerItem(IconData icon, String title, VoidCallback onTap) =>
       ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
@@ -2219,6 +2249,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         },
       );
 
+  // ── SECTION TITLE ──
   Widget _secTitle(String t) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [

@@ -59,17 +59,25 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   final _filters = ['All', 'Pending', 'Upcoming', 'Completed', 'Cancelled'];
 
-  final Set<int> _expandedCodes = {};
-
   final List<String> _rescheduleSlots = [
-    "08:00 AM",
-    "09:00 AM",
     "10:00 AM",
+    "10:30 AM",
     "11:00 AM",
+    "11:30 AM",
+    "12:00 PM",
+    "12:30 PM",
     "01:00 PM",
+    "01:30 PM",
     "02:00 PM",
+    "02:30 PM",
     "03:00 PM",
+    "03:30 PM",
     "04:00 PM",
+    "04:30 PM",
+    "05:00 PM",
+    "05:30 PM",
+    "06:00 PM",
+    "06:30 PM",
   ];
 
   // ── LIFECYCLE: Sets up tab controller on init and disposes it on exit. ──
@@ -81,7 +89,6 @@ class _CalendarScreenState extends State<CalendarScreen>
       if (!_tabCtrl.indexIsChanging) {
         setState(() {
           _filter = _filters[_tabCtrl.index];
-          _expandedCodes.clear();
         });
       }
     });
@@ -709,6 +716,8 @@ class _CalendarScreenState extends State<CalendarScreen>
     final isPending = status == 'pending';
     final isUpcoming = status == 'upcoming';
     final isCompleted = status == 'completed';
+    // ignore: unused_local_variable
+    final isCancelled = status == 'cancelled';
 
     final Color statusColor = isPending
         ? pendingOrange
@@ -1593,7 +1602,6 @@ class _CalendarScreenState extends State<CalendarScreen>
     );
   }
 
-  // ── TIME SELECTION GRID: Shows available time slots in a grid for the selected date. ──
   Widget _sheetTimeGrid(String? current, Function(String) onSel) {
     return GridView.builder(
       padding: EdgeInsets.zero,
